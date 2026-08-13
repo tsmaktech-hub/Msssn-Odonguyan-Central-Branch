@@ -93,17 +93,17 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           {/* CARD 1: ATTENDANCE SHEET */}
           <button
             onClick={onSelectAttendance}
-            className="group relative text-center bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-10 shadow-md hover:shadow-2xl border-2 border-emerald-200/80 hover:border-emerald-600 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-between overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
+            className="group relative text-center bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-10 shadow-md hover:shadow-2xl border-2 border-blue-200/80 hover:border-blue-600 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-between overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/20"
           >
             {/* Background Decorative Accent */}
-            <div className="absolute -right-6 -bottom-6 w-28 h-28 sm:w-44 sm:h-44 bg-emerald-50 rounded-full group-hover:bg-emerald-100/80 transition-all duration-300 -z-0"></div>
+            <div className="absolute -right-6 -bottom-6 w-28 h-28 sm:w-44 sm:h-44 bg-blue-50 rounded-full group-hover:bg-blue-100/80 transition-all duration-300 -z-0"></div>
             
             <div className="relative z-10 flex flex-col items-center w-full">
               {/* Header Badge / Status */}
               <div className="mb-2 sm:mb-4">
                 {attendanceUser ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <UserCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-700" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                    <UserCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-700" />
                     Logged In
                   </span>
                 ) : (
@@ -113,17 +113,17 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 )}
               </div>
 
-              {/* Main Prominent Icon */}
-              <div className="w-14 h-14 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-md sm:shadow-xl group-hover:bg-emerald-700 group-hover:scale-110 transition-all duration-300 my-2 sm:my-4">
+              {/* Main Prominent Icon - Vibrant Blue */}
+              <div className="w-14 h-14 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-blue-600 text-white flex items-center justify-center shadow-md sm:shadow-xl group-hover:bg-blue-700 group-hover:scale-110 transition-all duration-300 my-2 sm:my-4">
                 <ClipboardCheck className="w-8 h-8 sm:w-16 sm:h-16" />
               </div>
 
               {/* Title */}
-              <h3 className="text-sm sm:text-3xl font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors font-serif mt-1 sm:mt-2 leading-tight">
+              <h3 className="text-sm sm:text-3xl font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors font-serif mt-1 sm:mt-2 leading-tight">
                 Attendance Sheet
               </h3>
 
-              <div className="mt-2 sm:mt-4 inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-emerald-700 group-hover:text-emerald-800">
+              <div className="mt-2 sm:mt-4 inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-blue-700 group-hover:text-blue-800">
                 <span className="hidden sm:inline">{attendanceUser ? 'Open Attendance Sheet' : 'Sign In to Access'}</span>
                 <span className="sm:hidden">Open</span>
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
@@ -134,17 +134,17 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           {/* CARD 2: FINANCIAL RECORDS */}
           <button
             onClick={onSelectFinances}
-            className="group relative text-center bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-10 shadow-md hover:shadow-2xl border-2 border-emerald-200/80 hover:border-emerald-600 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-between overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
+            className="group relative text-center bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-10 shadow-md hover:shadow-2xl border-2 border-amber-200/80 hover:border-amber-600 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-between overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-amber-500/20"
           >
             {/* Background Decorative Accent */}
-            <div className="absolute -right-6 -bottom-6 w-28 h-28 sm:w-44 sm:h-44 bg-emerald-50 rounded-full group-hover:bg-emerald-100/80 transition-all duration-300 -z-0"></div>
+            <div className="absolute -right-6 -bottom-6 w-28 h-28 sm:w-44 sm:h-44 bg-amber-50 rounded-full group-hover:bg-amber-100/80 transition-all duration-300 -z-0"></div>
 
             <div className="relative z-10 flex flex-col items-center w-full">
               {/* Header Badge / Status */}
               <div className="mb-2 sm:mb-4">
                 {financeUser ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-700" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-700" />
                     Logged In
                   </span>
                 ) : (
@@ -154,17 +154,17 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 )}
               </div>
 
-              {/* Main Prominent Icon */}
-              <div className="w-14 h-14 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-emerald-800 text-white flex items-center justify-center shadow-md sm:shadow-xl group-hover:bg-emerald-900 group-hover:scale-110 transition-all duration-300 my-2 sm:my-4">
+              {/* Main Prominent Icon - Warm Amber/Gold */}
+              <div className="w-14 h-14 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-amber-600 text-white flex items-center justify-center shadow-md sm:shadow-xl group-hover:bg-amber-700 group-hover:scale-110 transition-all duration-300 my-2 sm:my-4">
                 <Wallet className="w-8 h-8 sm:w-16 sm:h-16" />
               </div>
 
               {/* Title */}
-              <h3 className="text-sm sm:text-3xl font-extrabold text-slate-900 group-hover:text-emerald-800 transition-colors font-serif mt-1 sm:mt-2 leading-tight">
+              <h3 className="text-sm sm:text-3xl font-extrabold text-slate-900 group-hover:text-amber-800 transition-colors font-serif mt-1 sm:mt-2 leading-tight">
                 Financial Records
               </h3>
 
-              <div className="mt-2 sm:mt-4 inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-emerald-800 group-hover:text-emerald-900">
+              <div className="mt-2 sm:mt-4 inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-amber-800 group-hover:text-amber-900">
                 <span className="hidden sm:inline">{financeUser ? 'Open Financial Records' : 'Sign In to Access'}</span>
                 <span className="sm:hidden">Open</span>
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
