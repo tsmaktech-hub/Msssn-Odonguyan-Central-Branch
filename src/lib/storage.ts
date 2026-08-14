@@ -19,7 +19,7 @@ import {
 const KEYS = {
   PROGRAMS: 'mssn_programs_v3',
   ATTENDEES: 'mssn_attendees_v3',
-  ATTENDANCE: 'mssn_attendance_v3',
+  ATTENDANCE: 'mssn_attendance_v4',
   TRANSACTIONS: 'mssn_transactions_v3',
   SEASONS: 'mssn_seasons_v3',
   ACTIVE_SEASON_ID: 'mssn_active_season_id_v3',
@@ -59,63 +59,8 @@ export const loadStoredData = () => {
     let programs: Program[] = rawPrograms
       .filter(p => !p.title.toLowerCase().includes('jihad') && p.category !== 'Jihad Week');
 
-    if (programs.length === 0) {
+    if (programs.length === 0 || programs.length < initialPrograms.length) {
       programs = [...initialPrograms];
-    } else {
-      let hasWeekly = false;
-      let hasSisters = false;
-      programs = programs.map((p, idx) => {
-        if (!hasWeekly && (p.id === 'prog-1' || p.title.toLowerCase().includes('weekly') || (p.title.toLowerCase().includes('brother') && p.title.toLowerCase().includes('sister')) || p.category === 'Usrah Meeting')) {
-          hasWeekly = true;
-          return {
-            ...p,
-            id: 'prog-1',
-            title: 'Weekly Usrah (Brothers/Sisters)',
-            category: 'Usrah Meeting',
-          };
-        }
-        if (!hasSisters && (p.id === 'prog-3' || (!p.title.toLowerCase().includes('brother') && (p.title.toLowerCase().includes('sister') || p.category === 'Sisters Wing')))) {
-          hasSisters = true;
-          return {
-            ...p,
-            id: 'prog-3',
-            title: 'Sisters Circle Usrah',
-            category: 'Sisters Wing',
-          };
-        }
-        return p;
-      });
-
-      // Ensure that if both items ended up with the same title or missing one, enforce slot 0 and slot 1
-      if (programs.length < 2 || programs[0].title === programs[1].title) {
-        programs = [
-          {
-            id: 'prog-1',
-            title: 'Weekly Usrah (Brothers/Sisters)',
-            category: 'Usrah Meeting',
-            date: '2026-08-09',
-            time: '10:00 AM - 01:00 PM',
-            location: 'Odonguyan Central Mosque Hall',
-            description: 'Weekly spiritual circle, Quranic commentary, Fiqh lectures, and general student welfare meeting.',
-            status: 'completed',
-            seasonId: activeSeasonId,
-            createdAt: '2026-08-01T08:00:00Z',
-          },
-          {
-            id: 'prog-3',
-            title: 'Sisters Circle Usrah',
-            category: 'Sisters Wing',
-            date: '2026-08-28',
-            time: '02:00 PM - 05:00 PM',
-            location: 'Central Branch Islamic Center',
-            description: 'Empowerment and spiritual circle session for sisters on modest living, mentorship, and Islamic etiquette.',
-            targetBudget: 120000,
-            status: 'upcoming',
-            seasonId: activeSeasonId,
-            createdAt: '2026-08-08T11:15:00Z',
-          }
-        ];
-      }
     }
 
     try {

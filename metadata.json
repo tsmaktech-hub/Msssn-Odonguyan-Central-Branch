@@ -1,6 +1,6 @@
 {
   "name": "MSSN Odonguyan Portal",
-  "description": "Attendance management system with separate gender portals, season reset, sync controls, and PIN-secured financial records for MSSN Odonguyan Central Branch.",
+  "description": "Attendance management system with separate gender portals, 5-session visual attendance tracking, dates & days breakdown modal, season reset, and PIN-secured financial records for MSSN Odonguyan Central Branch.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

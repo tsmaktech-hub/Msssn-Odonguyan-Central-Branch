@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   UserAccount, 
   Attendee, 
@@ -32,9 +32,13 @@ import {
   Plus,
   ShieldCheck,
   UserCheck,
-  Pencil
+  Pencil,
+  Eye,
+  CalendarDays,
+  History
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
+import { MemberAttendanceHistoryModal } from './MemberAttendanceHistoryModal';
 
 interface AttendanceWorkspaceProps {
   user: UserAccount;
@@ -142,8 +146,63 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState('');
 
+  // Member Attendance History Modal state
+  const [selectedHistoryMember, setSelectedHistoryMember] = useState<Attendee | null>(null);
+
   // Sync Toast State
   const [showSyncToast, setShowSyncToast] = useState(false);
+
+  // 5 Recent Sessions for 5-button history indicators (sorted descending by date)
+  const recentFivePrograms = useMemo(() => {
+    return [...programs]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [programs]);
+
+  // Compute attendance stats and 5-session history for a given member
+  const getMemberAttendanceStats = (memberId: string) => {
+    const totalAttended = attendance.filter(
+      a => a.attendeeId === memberId && (a.status === 'present' || a.status === 'late')
+    ).length;
+
+    const fiveSessionHistory = recentFivePrograms.map((prog, idx) => {
+      const rec = attendance.find(a => a.programId === prog.id && a.attendeeId === memberId);
+      const isRecorded = Boolean(rec && rec.status);
+      const isPresent = rec?.status === 'present' || rec?.status === 'late';
+      const isAbsent = rec?.status === 'absent';
+      
+      const dateObj = new Date(prog.date);
+      const isValidDate = !isNaN(dateObj.getTime());
+      const dayName = isValidDate 
+        ? dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+        : 'Sun';
+      const fullDayName = isValidDate 
+        ? dateObj.toLocaleDateString('en-US', { weekday: 'long' })
+        : 'Sunday';
+      const formattedDate = isValidDate
+        ? dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        : prog.date;
+
+      return {
+        sessionNumber: idx + 1,
+        program: prog,
+        record: rec,
+        isRecorded,
+        isPresent,
+        isAbsent,
+        dayName,
+        fullDayName,
+        formattedDate,
+        checkInTime: rec?.checkInTime,
+        status: rec?.status,
+      };
+    });
+
+    return {
+      totalAttended,
+      fiveSessionHistory,
+    };
+  };
 
   // Active program & season objects
   const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
@@ -319,14 +378,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
         {/* Sync Toast Alert */}
         {showSyncToast && (
-          <div className="fixed bottom-6 right-4 sm:right-6 z-50 bg-slate-900 text-white px-4 py-3 sm:px-5 sm:py-4 rounded-2xl shadow-2xl border-2 border-emerald-500 flex items-center gap-3 animate-bounce max-w-[90vw]">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
+          <div className="fixed bottom-6 right-4 sm:right-6 z-50 bg-slate-950 text-white px-4 py-3 sm:px-5 sm:py-4 rounded-2xl shadow-2xl border-2 border-emerald-500 flex items-center gap-3 animate-in slide-in-from-bottom-5 max-w-[90vw]">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
               <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <p className="font-bold text-xs sm:text-sm text-emerald-300">Attendance Sheet Synced!</p>
+              <p className="font-bold text-xs sm:text-sm text-emerald-300">Attendance Synced Successfully!</p>
               <p className="text-[11px] sm:text-xs text-slate-300">
-                Logged timestamp: {new Date().toLocaleTimeString()} • All check-in status saved.
+                Logged at {new Date().toLocaleTimeString()} • Updated attendance frequency and 5-session history indicators for all members.
               </p>
             </div>
           </div>
@@ -587,6 +646,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               filteredMembers.map((member) => {
                 const record = getRecordForMember(member.id);
                 const currentStatus = record?.status || 'absent';
+                const memberStats = getMemberAttendanceStats(member.id);
 
                 return (
                   <div key={member.id} className="p-3.5 space-y-2.5 bg-white">
@@ -630,8 +690,69 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       </button>
                     </div>
 
+                    {/* Attendance Frequency & 5-Button History Strip */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-slate-600">Attendance:</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedHistoryMember(member)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors cursor-pointer shadow-2xs ${
+                              memberStats.totalAttended > 0
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-slate-200/80 text-slate-600 hover:bg-slate-300'
+                            }`}
+                            title="Click to view dates and days"
+                          >
+                            <CheckCircle2 className={`w-3 h-3 ${memberStats.totalAttended > 0 ? 'text-emerald-600' : 'text-slate-400'}`} />
+                            <span>Attended {memberStats.totalAttended} times</span>
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHistoryMember(member)}
+                          className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0 cursor-pointer"
+                        >
+                          <span>View Days</span>
+                          <Eye className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* 5 Indicator Buttons (Unclicked by default when unrecorded) */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <span className="text-[10px] font-semibold text-slate-500">Last 5 Sessions:</span>
+                        <div className="flex items-center gap-1.5 justify-end">
+                          {memberStats.fiveSessionHistory.map((sess) => (
+                            <button
+                              key={sess.program.id}
+                              type="button"
+                              onClick={() => setSelectedHistoryMember(member)}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all transform active:scale-90 hover:scale-110 cursor-pointer ${
+                                !sess.isRecorded
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs'
+                                  : sess.isPresent
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 shadow-xs'
+                                    : 'bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-500/30 shadow-xs'
+                              }`}
+                              title={`Session ${sess.sessionNumber}: ${sess.fullDayName}, ${sess.formattedDate} - ${
+                                !sess.isRecorded 
+                                  ? 'Not recorded yet (Unclicked). Tap to view / take attendance.' 
+                                  : sess.isPresent 
+                                    ? 'Attended (Present). Tap to view dates & days.' 
+                                    : 'Did not attend (Absent). Tap to view dates & days.'
+                              }`}
+                            >
+                              {sess.sessionNumber}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Check-In Action Buttons: Present & Absent */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <button
                         type="button"
                         onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'present')}
@@ -671,6 +792,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   <th className="py-3.5 px-6">Member Details</th>
                   <th className="py-3.5 px-4">Gender</th>
                   <th className="py-3.5 px-4">Category / Institution</th>
+                  <th className="py-3.5 px-4">Attendance & Last 5 Sessions</th>
                   <th className="py-3.5 px-6 text-center">Check-In Status</th>
                   <th className="py-3.5 px-4 text-right">Delete</th>
                 </tr>
@@ -678,7 +800,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               <tbody className="divide-y divide-slate-100 text-sm">
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-500">
+                    <td colSpan={6} className="py-12 text-center text-slate-500">
                       <p className="font-bold text-slate-700">No members found</p>
                       <p className="text-xs text-slate-400 mt-1">
                         Click "Update New Member" to add names to the roster.
@@ -689,6 +811,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   filteredMembers.map((member) => {
                     const record = getRecordForMember(member.id);
                     const currentStatus = record?.status || 'absent';
+                    const memberStats = getMemberAttendanceStats(member.id);
 
                     return (
                       <tr key={member.id} className="hover:bg-slate-50 transition-colors">
@@ -726,6 +849,63 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                         <td className="py-4 px-4">
                           <p className="text-xs font-semibold text-slate-800">{member.category}</p>
                           <p className="text-xs text-slate-400">{member.regNo || member.institution || 'MSSN Odonguyan'}</p>
+                        </td>
+
+                        {/* Attendance & 5-Session History Buttons */}
+                        <td className="py-4 px-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedHistoryMember(member)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold transition-colors cursor-pointer shadow-2xs ${
+                                  memberStats.totalAttended > 0
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                                }`}
+                                title="Click to view dates and days"
+                              >
+                                <CheckCircle2 className={`w-3.5 h-3.5 ${memberStats.totalAttended > 0 ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                <span>Attended {memberStats.totalAttended} times</span>
+                              </button>
+                            </div>
+
+                            {/* 5 Indicator Buttons (Unclicked by default when unrecorded) */}
+                            <div className="flex items-center gap-1.5">
+                              {memberStats.fiveSessionHistory.map((sess) => (
+                                <button
+                                  key={sess.program.id}
+                                  type="button"
+                                  onClick={() => setSelectedHistoryMember(member)}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all transform active:scale-90 hover:scale-110 cursor-pointer ${
+                                    !sess.isRecorded
+                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs'
+                                      : sess.isPresent
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/30 shadow-xs'
+                                        : 'bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-400/30 shadow-xs'
+                                  }`}
+                                  title={`Session ${sess.sessionNumber}: ${sess.fullDayName}, ${sess.formattedDate} - ${
+                                    !sess.isRecorded 
+                                      ? 'Not recorded yet (Unclicked). Click to view / take attendance.' 
+                                      : sess.isPresent 
+                                        ? 'Attended (Present). Click to view details.' 
+                                        : 'Did not attend (Absent). Click to view details.'
+                                  }`}
+                                >
+                                  {sess.sessionNumber}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedHistoryMember(member)}
+                                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 ml-1 hover:underline cursor-pointer flex items-center gap-0.5"
+                                title="View detailed dates and days"
+                              >
+                                <span>View Days</span>
+                                <Eye className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
                         </td>
 
                         {/* Check-In Status Toggles (Present & Absent) */}
@@ -1126,6 +1306,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+
+      {/* MODAL 3: MEMBER ATTENDANCE HISTORY (DATES & DAYS BREAKDOWN) */}
+      <MemberAttendanceHistoryModal
+        isOpen={Boolean(selectedHistoryMember)}
+        onClose={() => setSelectedHistoryMember(null)}
+        member={selectedHistoryMember}
+        programs={programs}
+        attendance={attendance}
+        onUpdateAttendance={onUpdateAttendance}
+      />
 
     </div>
   );
