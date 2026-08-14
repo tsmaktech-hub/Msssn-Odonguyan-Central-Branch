@@ -102,12 +102,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
 
-  // Determine if current program is Sisters-only
+  // Determine if current program is dedicated Sisters-only (e.g. Sisters Circle Usrah) and not a combined Brothers/Sisters program
   const isSistersOnlyProgram = Boolean(
-    activeProgram && (
-      activeProgram.title.toLowerCase().includes('sister') ||
-      activeProgram.category === 'Sisters Wing'
-    )
+    activeProgram &&
+    (activeProgram.category === 'Sisters Wing' ||
+      activeProgram.title.toLowerCase().includes('sisters circle') ||
+      activeProgram.title.toLowerCase().includes('sister circle')) &&
+    !activeProgram.title.toLowerCase().includes('brother')
   );
 
   // Filter members by gender tab & search query
@@ -375,8 +376,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 const progId = e.target.value;
                 setSelectedProgramId(progId);
                 const targetProg = programs.find(p => p.id === progId);
-                if (targetProg && (targetProg.title.toLowerCase().includes('sister') || targetProg.category === 'Sisters Wing')) {
+                const isTargetSistersOnly = Boolean(
+                  targetProg &&
+                  (targetProg.category === 'Sisters Wing' ||
+                    targetProg.title.toLowerCase().includes('sisters circle') ||
+                    targetProg.title.toLowerCase().includes('sister circle')) &&
+                  !targetProg.title.toLowerCase().includes('brother')
+                );
+                if (isTargetSistersOnly) {
                   setSelectedGenderTab('sisters');
+                } else {
+                  setSelectedGenderTab('all');
                 }
               }}
               className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-semibold text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
