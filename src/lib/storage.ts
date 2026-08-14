@@ -107,10 +107,26 @@ export const loadStoredData = () => {
       localStorage.setItem(KEYS.PROGRAMS, JSON.stringify(programs));
     } catch {}
 
+    let attendees: Attendee[] = storedAttendees ? JSON.parse(storedAttendees) as Attendee[] : initialAttendees;
+    if (!attendees || attendees.length === 0) {
+      attendees = initialAttendees;
+      try {
+        localStorage.setItem(KEYS.ATTENDEES, JSON.stringify(attendees));
+      } catch {}
+    }
+
+    let attendance: AttendanceRecord[] = storedAttendance ? JSON.parse(storedAttendance) as AttendanceRecord[] : initialAttendanceRecords;
+    if (!attendance || attendance.length === 0) {
+      attendance = initialAttendanceRecords;
+      try {
+        localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(attendance));
+      } catch {}
+    }
+
     return {
       programs: programs,
-      attendees: storedAttendees ? JSON.parse(storedAttendees) as Attendee[] : initialAttendees,
-      attendance: storedAttendance ? JSON.parse(storedAttendance) as AttendanceRecord[] : initialAttendanceRecords,
+      attendees: attendees,
+      attendance: attendance,
       transactions: storedTransactions ? JSON.parse(storedTransactions) as FinancialTransaction[] : initialTransactions,
       seasons: seasons,
       activeSeasonId: activeSeasonId,
