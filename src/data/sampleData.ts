@@ -20,7 +20,7 @@ export const initialSeasons: Season[] = [
 export const initialPrograms: Program[] = [
   {
     id: 'prog-1',
-    title: 'Weekly Sunday Central Usrah',
+    title: 'Weekly Usrah (Brothers/Sisters)',
     category: 'Usrah Meeting',
     date: '2026-08-09',
     time: '10:00 AM - 01:00 PM',
@@ -31,21 +31,8 @@ export const initialPrograms: Program[] = [
     createdAt: '2026-08-01T08:00:00Z',
   },
   {
-    id: 'prog-2',
-    title: 'MSSN Odonguyan Annual Jihad Week',
-    category: 'Jihad Week',
-    date: '2026-08-20',
-    time: '09:00 AM - 04:00 PM',
-    location: 'Community Hall Odonguyan, Ikorodu',
-    description: 'Flagship annual gathering featuring public lectures, Islamic quizzes, sister seminar, and community outreach.',
-    targetBudget: 350000,
-    status: 'active',
-    seasonId: 'season-1',
-    createdAt: '2026-08-05T09:30:00Z',
-  },
-  {
     id: 'prog-3',
-    title: 'Sister Circle',
+    title: 'Sisters Circle Usrah',
     category: 'Sisters Wing',
     date: '2026-08-28',
     time: '02:00 PM - 05:00 PM',

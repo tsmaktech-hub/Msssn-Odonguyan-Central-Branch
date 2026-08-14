@@ -56,12 +56,25 @@ export const loadStoredData = () => {
     const activeSeasonId = storedActiveSeason || (seasons[0]?.id || 'season-1');
 
     const rawPrograms = storedPrograms ? JSON.parse(storedPrograms) as Program[] : initialPrograms;
-    const programs: Program[] = rawPrograms.map(p => {
-      if (p.id === 'prog-3' || p.title.toLowerCase().includes('skill acquisition')) {
-        return { ...p, title: 'Sister Circle' };
-      }
-      return p;
-    });
+    const programs: Program[] = rawPrograms
+      .filter(p => !p.title.toLowerCase().includes('jihad') && p.category !== 'Jihad Week')
+      .map(p => {
+        if (p.id === 'prog-3' || p.title.toLowerCase().includes('sister')) {
+          return { 
+            ...p, 
+            title: 'Sisters Circle Usrah',
+            category: 'Sisters Wing'
+          };
+        }
+        if (p.id === 'prog-1' || p.title.toLowerCase().includes('weekly sunday') || p.title.toLowerCase().includes('weekly usrah')) {
+          return {
+            ...p,
+            title: 'Weekly Usrah (Brothers/Sisters)',
+            category: 'Usrah Meeting'
+          };
+        }
+        return p;
+      });
 
     return {
       programs: programs,

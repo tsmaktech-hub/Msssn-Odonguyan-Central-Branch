@@ -102,11 +102,23 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
 
+  // Determine if current program is Sisters-only
+  const isSistersOnlyProgram = Boolean(
+    activeProgram && (
+      activeProgram.title.toLowerCase().includes('sister') ||
+      activeProgram.category === 'Sisters Wing'
+    )
+  );
+
   // Filter members by gender tab & search query
   const filteredMembers = attendees.filter(att => {
-    // Gender filter
-    if (selectedGenderTab === 'brothers' && att.gender !== 'Brother') return false;
-    if (selectedGenderTab === 'sisters' && att.gender !== 'Sister') return false;
+    // Gender filter: if Sisters-only program, only sisters are permitted
+    if (isSistersOnlyProgram) {
+      if (att.gender !== 'Sister') return false;
+    } else {
+      if (selectedGenderTab === 'brothers' && att.gender !== 'Brother') return false;
+      if (selectedGenderTab === 'sisters' && att.gender !== 'Sister') return false;
+    }
 
     // Category filter
     if (categoryFilter !== 'all' && att.category !== categoryFilter) return false;
@@ -359,7 +371,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
             <select
               value={selectedProgramId}
-              onChange={(e) => setSelectedProgramId(e.target.value)}
+              onChange={(e) => {
+                const progId = e.target.value;
+                setSelectedProgramId(progId);
+                const targetProg = programs.find(p => p.id === progId);
+                if (targetProg && (targetProg.title.toLowerCase().includes('sister') || targetProg.category === 'Sisters Wing')) {
+                  setSelectedGenderTab('sisters');
+                }
+              }}
               className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-semibold text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
             >
               {programs.map(prog => (
@@ -375,70 +394,96 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         {/* GENDER-SEGREGATED ATTENDANCE TABS */}
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
           
-          {/* Top Gender Tab Buttons */}
-          <div className="grid grid-cols-3 bg-slate-100 p-1.5 sm:p-2 border-b border-slate-200 gap-1">
-            
-            {/* BROTHERS TAB */}
-            <button
-              onClick={() => setSelectedGenderTab('brothers')}
-              className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
-                selectedGenderTab === 'brothers'
-                  ? 'bg-emerald-800 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <div className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                <span className="truncate">Brothers</span>
+          {/* Top Gender Tab Buttons or Sisters Exclusive Header */}
+          {isSistersOnlyProgram ? (
+            <div className="bg-gradient-to-r from-teal-900 via-emerald-900 to-teal-950 p-2.5 sm:p-3.5 border-b border-teal-800 flex items-center justify-between gap-3 text-white">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <div className="p-1.5 sm:p-2 rounded-xl bg-teal-800/80 text-teal-200 border border-teal-700">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-extrabold text-xs sm:text-sm text-white">Sisters Circle Usrah Attendance Sheet</p>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-teal-950">
+                      Sisters Only
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-teal-200/90">
+                    Displaying female members (Sisters) roster only for this program
+                  </p>
+                </div>
               </div>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                selectedGenderTab === 'brothers' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {brothersPresentCount}/{totalBrothers}
-              </span>
-            </button>
-
-            {/* SISTERS TAB */}
-            <button
-              onClick={() => setSelectedGenderTab('sisters')}
-              className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
-                selectedGenderTab === 'sisters'
-                  ? 'bg-teal-800 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <div className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                <span className="truncate">Sisters</span>
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-xl text-xs font-extrabold bg-teal-800 text-amber-300 border border-teal-700">
+                  {sistersPresentCount} / {totalSisters} Present
+                </span>
               </div>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                selectedGenderTab === 'sisters' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {sistersPresentCount}/{totalSisters}
-              </span>
-            </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 bg-slate-100 p-1.5 sm:p-2 border-b border-slate-200 gap-1">
+              
+              {/* BROTHERS TAB */}
+              <button
+                onClick={() => setSelectedGenderTab('brothers')}
+                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                  selectedGenderTab === 'brothers'
+                    ? 'bg-emerald-800 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="truncate">Brothers</span>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
+                  selectedGenderTab === 'brothers' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {brothersPresentCount}/{totalBrothers}
+                </span>
+              </button>
 
-            {/* ALL MEMBERS TAB */}
-            <button
-              onClick={() => setSelectedGenderTab('all')}
-              className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
-                selectedGenderTab === 'all'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <div className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                <span className="truncate">All</span>
-              </div>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                selectedGenderTab === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {attendees.length}
-              </span>
-            </button>
+              {/* SISTERS TAB */}
+              <button
+                onClick={() => setSelectedGenderTab('sisters')}
+                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                  selectedGenderTab === 'sisters'
+                    ? 'bg-teal-800 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="truncate">Sisters</span>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
+                  selectedGenderTab === 'sisters' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {sistersPresentCount}/{totalSisters}
+                </span>
+              </button>
 
-          </div>
+              {/* ALL MEMBERS TAB */}
+              <button
+                onClick={() => setSelectedGenderTab('all')}
+                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                  selectedGenderTab === 'all'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="truncate">All</span>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
+                  selectedGenderTab === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {attendees.length}
+                </span>
+              </button>
+
+            </div>
+          )}
 
           {/* Search & Filter Bar */}
           <div className="p-3 sm:p-5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
@@ -471,10 +516,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
               {/* Mark All Present Quick Action */}
               <button
-                onClick={() => onMarkAllPresent(selectedProgramId, selectedGenderTab === 'brothers' ? 'Brother' : selectedGenderTab === 'sisters' ? 'Sister' : undefined)}
+                onClick={() => onMarkAllPresent(
+                  selectedProgramId, 
+                  isSistersOnlyProgram ? 'Sister' : selectedGenderTab === 'brothers' ? 'Brother' : selectedGenderTab === 'sisters' ? 'Sister' : undefined
+                )}
                 className="px-2.5 py-1.5 sm:py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-bold border border-emerald-300 shrink-0"
               >
-                Mark {selectedGenderTab === 'brothers' ? 'Brothers' : selectedGenderTab === 'sisters' ? 'Sisters' : 'All'} Present
+                Mark {isSistersOnlyProgram ? 'Sisters' : selectedGenderTab === 'brothers' ? 'Brothers' : selectedGenderTab === 'sisters' ? 'Sisters' : 'All'} Present
               </button>
             </div>
 
