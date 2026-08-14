@@ -55,8 +55,16 @@ export const loadStoredData = () => {
     const seasons: Season[] = storedSeasons ? JSON.parse(storedSeasons) : initialSeasons;
     const activeSeasonId = storedActiveSeason || (seasons[0]?.id || 'season-1');
 
+    const rawPrograms = storedPrograms ? JSON.parse(storedPrograms) as Program[] : initialPrograms;
+    const programs: Program[] = rawPrograms.map(p => {
+      if (p.id === 'prog-3' || p.title.toLowerCase().includes('skill acquisition')) {
+        return { ...p, title: 'Sister Circle' };
+      }
+      return p;
+    });
+
     return {
-      programs: storedPrograms ? JSON.parse(storedPrograms) as Program[] : initialPrograms,
+      programs: programs,
       attendees: storedAttendees ? JSON.parse(storedAttendees) as Attendee[] : initialAttendees,
       attendance: storedAttendance ? JSON.parse(storedAttendance) as AttendanceRecord[] : initialAttendanceRecords,
       transactions: storedTransactions ? JSON.parse(storedTransactions) as FinancialTransaction[] : initialTransactions,
