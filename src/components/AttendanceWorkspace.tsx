@@ -115,7 +115,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = att.name.toLowerCase().includes(q);
-      const matchPhone = att.phone.includes(q);
+      const matchPhone = (att.phone || '').toLowerCase().includes(q);
       const matchReg = (att.regNo || '').toLowerCase().includes(q);
       const matchInst = (att.institution || '').toLowerCase().includes(q);
       return matchName || matchPhone || matchReg || matchInst;
@@ -151,15 +151,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Handle Submit New Member
   const handleSaveMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberName.trim() || !newMemberPhone.trim()) {
-      alert('Please enter member name and phone number.');
+    if (!newMemberName.trim()) {
+      alert('Please enter member name.');
       return;
     }
 
     onAddAttendee({
       name: newMemberName.trim(),
       gender: newMemberGender,
-      phone: newMemberPhone.trim(),
+      phone: newMemberPhone.trim() || undefined,
       email: newMemberEmail.trim() || undefined,
       category: newMemberCategory,
       institution: newMemberInstitution.trim() || undefined,
@@ -510,7 +510,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          {member.phone} {member.category ? `• ${member.category}` : ''}
+                          {member.phone ? member.phone : ''}{member.phone && member.category ? ' • ' : ''}{member.category || ''}
                         </p>
                       </div>
 
@@ -598,7 +598,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <tr className="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold tracking-wider border-b border-slate-200">
                   <th className="py-3.5 px-6">Member Details</th>
                   <th className="py-3.5 px-4">Gender</th>
-                  <th className="py-3.5 px-4">Category / Reg No</th>
+                  <th className="py-3.5 px-4">Category / Institution</th>
                   <th className="py-3.5 px-6 text-center">Check-In Status</th>
                   <th className="py-3.5 px-4">Notes / Remarks</th>
                   <th className="py-3.5 px-4 text-right">Delete</th>
@@ -626,7 +626,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                         <td className="py-4 px-6">
                           <div>
                             <p className="font-bold text-slate-900">{member.name}</p>
-                            <p className="text-xs text-slate-500">{member.phone}</p>
+                            {member.phone && <p className="text-xs text-slate-500">{member.phone}</p>}
                           </div>
                         </td>
 
@@ -807,14 +807,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Phone Number *
+                    Phone Number (Optional)
                   </label>
                   <input
                     type="text"
-                    required
                     value={newMemberPhone}
                     onChange={(e) => setNewMemberPhone(e.target.value)}
-                    placeholder="08012345678"
+                    placeholder="e.g. 08012345678"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -828,7 +827,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   <select
                     value={newMemberCategory}
                     onChange={(e) => setNewMemberCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
                   >
                     <option value="Undergraduate">Undergraduate</option>
                     <option value="Secondary Student">Secondary Student</option>
@@ -839,29 +838,16 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Registration / ID No.
+                    School / Institution / Location
                   </label>
                   <input
                     type="text"
-                    value={newMemberRegNo}
-                    onChange={(e) => setNewMemberRegNo(e.target.value)}
-                    placeholder="MSSN/ODN/001"
+                    value={newMemberInstitution}
+                    onChange={(e) => setNewMemberInstitution(e.target.value)}
+                    placeholder="e.g. Odonguyan Grammar School"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  School / Institution / Location
-                </label>
-                <input
-                  type="text"
-                  value={newMemberInstitution}
-                  onChange={(e) => setNewMemberInstitution(e.target.value)}
-                  placeholder="e.g. Odonguyan Grammar School / LASUTECH"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3">

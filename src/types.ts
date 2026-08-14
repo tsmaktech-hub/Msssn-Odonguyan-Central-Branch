@@ -11,7 +11,7 @@ export interface Attendee {
   id: string;
   name: string;
   gender: GenderType;
-  phone: string;
+  phone?: string;
   email?: string;
   category: MemberCategory;
   role?: string;
