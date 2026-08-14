@@ -471,15 +471,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               {/* BROTHERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('brothers')}
-                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                className={`py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-sm flex flex-row items-center justify-center gap-1 sm:gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'brothers'
                     ? 'bg-emerald-800 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                 <span>Brothers</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold transition-colors ${
                   selectedGenderTab === 'brothers'
                     ? 'bg-amber-400 text-emerald-950 shadow-xs'
                     : 'bg-slate-200 text-slate-700'
@@ -491,15 +491,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               {/* SISTERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('sisters')}
-                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                className={`py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-sm flex flex-row items-center justify-center gap-1 sm:gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'sisters'
                     ? 'bg-teal-800 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                 <span>Sisters</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold transition-colors ${
                   selectedGenderTab === 'sisters'
                     ? 'bg-amber-400 text-teal-950 shadow-xs'
                     : 'bg-slate-200 text-slate-700'
@@ -511,15 +511,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               {/* ALL MEMBERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('all')}
-                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                className={`py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-sm flex flex-row items-center justify-center gap-1 sm:gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'all'
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                 <span>All</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold transition-colors ${
                   selectedGenderTab === 'all'
                     ? 'bg-amber-400 text-slate-950 shadow-xs'
                     : 'bg-slate-200 text-slate-700'
