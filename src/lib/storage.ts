@@ -56,25 +56,56 @@ export const loadStoredData = () => {
     const activeSeasonId = storedActiveSeason || (seasons[0]?.id || 'season-1');
 
     const rawPrograms = storedPrograms ? JSON.parse(storedPrograms) as Program[] : initialPrograms;
-    const programs: Program[] = rawPrograms
-      .filter(p => !p.title.toLowerCase().includes('jihad') && p.category !== 'Jihad Week')
-      .map(p => {
-        if (p.id === 'prog-3' || p.title.toLowerCase().includes('sister')) {
-          return { 
-            ...p, 
-            title: 'Sisters Circle Usrah',
-            category: 'Sisters Wing'
-          };
-        }
-        if (p.id === 'prog-1' || p.title.toLowerCase().includes('weekly sunday') || p.title.toLowerCase().includes('weekly usrah')) {
+    let programs: Program[] = rawPrograms
+      .filter(p => !p.title.toLowerCase().includes('jihad') && p.category !== 'Jihad Week');
+
+    if (programs.length === 0) {
+      programs = [...initialPrograms];
+    } else {
+      let hasWeekly = false;
+      let hasSisters = false;
+      programs = programs.map((p, idx) => {
+        if (!hasWeekly && (p.id === 'prog-1' || idx === 0 || p.title.toLowerCase().includes('weekly') || p.category === 'Usrah Meeting')) {
+          hasWeekly = true;
           return {
             ...p,
+            id: p.id === 'prog-3' && programs.length > 1 ? 'prog-1' : p.id,
             title: 'Weekly Usrah (Brothers/Sisters)',
-            category: 'Usrah Meeting'
+            category: 'Usrah Meeting',
+          };
+        }
+        if (!hasSisters && (p.id === 'prog-3' || idx === 1 || p.title.toLowerCase().includes('sister') || p.category === 'Sisters Wing')) {
+          hasSisters = true;
+          return {
+            ...p,
+            id: p.id || 'prog-3',
+            title: 'Sisters Circle Usrah',
+            category: 'Sisters Wing',
           };
         }
         return p;
       });
+
+      // Ensure that if both items ended up with the same title, slot 0 is Weekly Usrah and slot 1 is Sisters Circle Usrah
+      if (programs.length >= 2 && programs[0].title === programs[1].title) {
+        programs[0] = {
+          ...programs[0],
+          id: 'prog-1',
+          title: 'Weekly Usrah (Brothers/Sisters)',
+          category: 'Usrah Meeting'
+        };
+        programs[1] = {
+          ...programs[1],
+          id: 'prog-3',
+          title: 'Sisters Circle Usrah',
+          category: 'Sisters Wing'
+        };
+      }
+    }
+
+    try {
+      localStorage.setItem(KEYS.PROGRAMS, JSON.stringify(programs));
+    } catch {}
 
     return {
       programs: programs,
