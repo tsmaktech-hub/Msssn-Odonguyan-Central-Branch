@@ -102,10 +102,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
 
-  // Determine if current program is dedicated Sisters-only (e.g. Sisters Circle Usrah)
+  // Determine if current program is dedicated Sisters-only (e.g. Sisters Circle Usrah) and not a combined Brothers/Sisters program
   const isSistersOnlyProgram = Boolean(
     activeProgram &&
-    (activeProgram.category === 'Sisters Wing' || activeProgram.title.toLowerCase().includes('sister'))
+    (activeProgram.category === 'Sisters Wing' ||
+      activeProgram.title.toLowerCase().includes('sisters circle') ||
+      activeProgram.title.toLowerCase().includes('sister circle')) &&
+    !activeProgram.title.toLowerCase().includes('brother')
   );
 
   // Filter members by gender tab & search query
@@ -373,11 +376,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 const progId = e.target.value;
                 setSelectedProgramId(progId);
                 const targetProg = programs.find(p => p.id === progId);
-                const isTargetSisters = Boolean(
+                const isTargetSistersOnly = Boolean(
                   targetProg &&
-                  (targetProg.category === 'Sisters Wing' || targetProg.title.toLowerCase().includes('sister'))
+                  (targetProg.category === 'Sisters Wing' ||
+                    targetProg.title.toLowerCase().includes('sisters circle') ||
+                    targetProg.title.toLowerCase().includes('sister circle')) &&
+                  !targetProg.title.toLowerCase().includes('brother')
                 );
-                if (isTargetSisters) {
+                if (isTargetSistersOnly) {
                   setSelectedGenderTab('sisters');
                 } else {
                   setSelectedGenderTab('all');
@@ -410,7 +416,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   <span>Sisters</span>
                 </div>
                 <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-400 text-emerald-950">
-                  {sistersPresentCount}/{totalSisters}
+                  {totalSisters}
                 </span>
               </button>
             </div>
@@ -433,7 +439,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
                   selectedGenderTab === 'brothers' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
                 }`}>
-                  {brothersPresentCount}/{totalBrothers}
+                  {totalBrothers}
                 </span>
               </button>
 
@@ -453,7 +459,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
                   selectedGenderTab === 'sisters' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
                 }`}>
-                  {sistersPresentCount}/{totalSisters}
+                  {totalSisters}
                 </span>
               </button>
 

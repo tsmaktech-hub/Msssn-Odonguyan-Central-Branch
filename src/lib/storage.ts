@@ -65,20 +65,20 @@ export const loadStoredData = () => {
       let hasWeekly = false;
       let hasSisters = false;
       programs = programs.map((p, idx) => {
-        if (!hasWeekly && (p.id === 'prog-1' || idx === 0 || p.title.toLowerCase().includes('weekly') || p.category === 'Usrah Meeting')) {
+        if (!hasWeekly && (p.id === 'prog-1' || p.title.toLowerCase().includes('weekly') || (p.title.toLowerCase().includes('brother') && p.title.toLowerCase().includes('sister')) || p.category === 'Usrah Meeting')) {
           hasWeekly = true;
           return {
             ...p,
-            id: p.id === 'prog-3' && programs.length > 1 ? 'prog-1' : p.id,
+            id: 'prog-1',
             title: 'Weekly Usrah (Brothers/Sisters)',
             category: 'Usrah Meeting',
           };
         }
-        if (!hasSisters && (p.id === 'prog-3' || idx === 1 || p.title.toLowerCase().includes('sister') || p.category === 'Sisters Wing')) {
+        if (!hasSisters && (p.id === 'prog-3' || (!p.title.toLowerCase().includes('brother') && (p.title.toLowerCase().includes('sister') || p.category === 'Sisters Wing')))) {
           hasSisters = true;
           return {
             ...p,
-            id: p.id || 'prog-3',
+            id: 'prog-3',
             title: 'Sisters Circle Usrah',
             category: 'Sisters Wing',
           };
@@ -86,20 +86,35 @@ export const loadStoredData = () => {
         return p;
       });
 
-      // Ensure that if both items ended up with the same title, slot 0 is Weekly Usrah and slot 1 is Sisters Circle Usrah
-      if (programs.length >= 2 && programs[0].title === programs[1].title) {
-        programs[0] = {
-          ...programs[0],
-          id: 'prog-1',
-          title: 'Weekly Usrah (Brothers/Sisters)',
-          category: 'Usrah Meeting'
-        };
-        programs[1] = {
-          ...programs[1],
-          id: 'prog-3',
-          title: 'Sisters Circle Usrah',
-          category: 'Sisters Wing'
-        };
+      // Ensure that if both items ended up with the same title or missing one, enforce slot 0 and slot 1
+      if (programs.length < 2 || programs[0].title === programs[1].title) {
+        programs = [
+          {
+            id: 'prog-1',
+            title: 'Weekly Usrah (Brothers/Sisters)',
+            category: 'Usrah Meeting',
+            date: '2026-08-09',
+            time: '10:00 AM - 01:00 PM',
+            location: 'Odonguyan Central Mosque Hall',
+            description: 'Weekly spiritual circle, Quranic commentary, Fiqh lectures, and general student welfare meeting.',
+            status: 'completed',
+            seasonId: activeSeasonId,
+            createdAt: '2026-08-01T08:00:00Z',
+          },
+          {
+            id: 'prog-3',
+            title: 'Sisters Circle Usrah',
+            category: 'Sisters Wing',
+            date: '2026-08-28',
+            time: '02:00 PM - 05:00 PM',
+            location: 'Central Branch Islamic Center',
+            description: 'Empowerment and spiritual circle session for sisters on modest living, mentorship, and Islamic etiquette.',
+            targetBudget: 120000,
+            status: 'upcoming',
+            seasonId: activeSeasonId,
+            createdAt: '2026-08-08T11:15:00Z',
+          }
+        ];
       }
     }
 
