@@ -17,17 +17,17 @@ import {
 } from '../data/sampleData';
 
 const KEYS = {
-  PROGRAMS: 'mssn_programs_v2',
-  ATTENDEES: 'mssn_attendees_v2',
-  ATTENDANCE: 'mssn_attendance_v2',
-  TRANSACTIONS: 'mssn_transactions_v2',
-  SEASONS: 'mssn_seasons_v2',
-  ACTIVE_SEASON_ID: 'mssn_active_season_id_v2',
-  USERS: 'mssn_registered_users_v2',
+  PROGRAMS: 'mssn_programs_v3',
+  ATTENDEES: 'mssn_attendees_v3',
+  ATTENDANCE: 'mssn_attendance_v3',
+  TRANSACTIONS: 'mssn_transactions_v3',
+  SEASONS: 'mssn_seasons_v3',
+  ACTIVE_SEASON_ID: 'mssn_active_season_id_v3',
+  USERS: 'mssn_registered_users_v3',
   ATTENDANCE_AUTH: 'mssn_auth_attendance_officer',
   FINANCE_AUTH: 'mssn_auth_accountant',
-  ACCOUNTANT_PIN: 'mssn_accountant_pin_v2',
-  LAST_SYNC: 'mssn_last_sync_log_v2'
+  ACCOUNTANT_PIN: 'mssn_accountant_pin_v3',
+  LAST_SYNC: 'mssn_last_sync_log_v3'
 };
 
 export const formatNaira = (amount: number): string => {
