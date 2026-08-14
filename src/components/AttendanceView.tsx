@@ -6,9 +6,6 @@ import {
   Check, 
   Clock, 
   X, 
-  HelpCircle, 
-  Plus, 
-  Download, 
   CheckCheck, 
   RotateCcw,
   UserPlus,
@@ -43,8 +40,6 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | AttendanceStatus>('all');
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
-  const [noteText, setNoteText] = useState('');
 
   const currentProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
 
@@ -72,19 +67,9 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
   // Counters
   const presentCount = programRecords.filter(r => r.status === 'present').length;
-  const lateCount = programRecords.filter(r => r.status === 'late').length;
-  const absentCount = attendees.length - (presentCount + lateCount + programRecords.filter(r => r.status === 'excused').length);
-  const excusedCount = programRecords.filter(r => r.status === 'excused').length;
-  const totalCheckIns = presentCount + lateCount;
+  const absentCount = attendees.length - presentCount;
+  const totalCheckIns = presentCount;
   const checkInRate = attendees.length > 0 ? Math.round((totalCheckIns / attendees.length) * 100) : 0;
-
-  const handleSaveNotes = (attendeeId: string) => {
-    const rec = getStatus(attendeeId);
-    const status = rec ? rec.status : 'present';
-    onUpdateAttendance(currentProgram.id, attendeeId, status, noteText);
-    setEditingNotesId(null);
-    setNoteText('');
-  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -164,7 +149,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       </div>
 
       {/* Attendance Metrics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Expected</span>
@@ -176,13 +161,6 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
             <Check className="w-3 h-3" /> Present
           </span>
           <span className="text-xl font-black text-emerald-700 mt-1 block">{presentCount}</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-amber-200/80 bg-amber-50/20 shadow-sm text-center">
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block flex items-center justify-center gap-1">
-            <Clock className="w-3 h-3" /> Late
-          </span>
-          <span className="text-xl font-black text-amber-700 mt-1 block">{lateCount}</span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-rose-200/80 bg-rose-50/20 shadow-sm text-center">
@@ -218,7 +196,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
           <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
             <span className="text-xs text-slate-400 font-semibold mr-1">Filter:</span>
-            {(['all', 'present', 'late', 'absent', 'excused'] as const).map((st) => (
+            {(['all', 'present', 'absent'] as const).map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
@@ -266,10 +244,6 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                       currentStatus === 'present'
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : currentStatus === 'late'
-                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                        : currentStatus === 'excused'
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
                         : 'bg-slate-100 text-slate-500 border border-slate-200'
                     }`}>
                       {att.name.slice(0, 2).toUpperCase()}
@@ -290,21 +264,16 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                           <Clock className="w-3 h-3" /> Checked in at {rec.checkInTime}
                         </p>
                       )}
-                      {rec?.notes && (
-                        <p className="text-[11px] text-indigo-600 italic mt-0.5">
-                          "{rec.notes}"
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  {/* Status Toggle Buttons */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                  {/* Status Toggle Buttons: Present & Absent */}
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     
                     {/* Present Button */}
                     <button
                       onClick={() => onUpdateAttendance(currentProgram.id, att.id, 'present')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                         currentStatus === 'present'
                           ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/30'
                           : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
@@ -314,23 +283,10 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       Present
                     </button>
 
-                    {/* Late Button */}
-                    <button
-                      onClick={() => onUpdateAttendance(currentProgram.id, att.id, 'late')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                        currentStatus === 'late'
-                          ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/30'
-                          : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-700'
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      Late
-                    </button>
-
                     {/* Absent Button */}
                     <button
                       onClick={() => onUpdateAttendance(currentProgram.id, att.id, 'absent')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                         currentStatus === 'absent'
                           ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-500/30'
                           : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
@@ -339,64 +295,13 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       <X className="w-3.5 h-3.5" />
                       Absent
                     </button>
-
-                    {/* Excused Button */}
-                    <button
-                      onClick={() => onUpdateAttendance(currentProgram.id, att.id, 'excused')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                        currentStatus === 'excused'
-                          ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30'
-                          : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'
-                      }`}
-                    >
-                      <HelpCircle className="w-3.5 h-3.5" />
-                      Excused
-                    </button>
-
-                    {/* Quick Note Editor toggle */}
-                    <button
-                      onClick={() => {
-                        if (editingNotesId === att.id) {
-                          setEditingNotesId(null);
-                        } else {
-                          setEditingNotesId(att.id);
-                          setNoteText(rec?.notes || '');
-                        }
-                      }}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                      title="Add note to attendance record"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
                   </div>
-
-                  {/* Note Editing Input dropdown if toggled */}
-                  {editingNotesId === att.id && (
-                    <div className="w-full mt-2 pt-2 border-t border-slate-100 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Add attendance note (e.g. Paid registration at door, brought guest...)"
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs"
-                      />
-                      <button
-                        onClick={() => handleSaveNotes(att.id)}
-                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
-                      >
-                        Save Note
-                      </button>
-                    </div>
-                  )}
-
                 </div>
               );
             })
           )}
         </div>
-
       </div>
-
     </div>
   );
 };

@@ -50,7 +50,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const netBalance = totalIncome - totalExpense;
 
-  const totalCheckIns = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
+  const totalCheckIns = attendance.filter(a => a.status === 'present').length;
   const totalPossibleCheckIns = attendance.length || 1;
   const overallAttendanceRate = Math.round((totalCheckIns / totalPossibleCheckIns) * 100);
 
@@ -67,7 +67,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const exp = progTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
     
     const progAtt = attendance.filter(a => a.programId === progId);
-    const present = progAtt.filter(a => a.status === 'present' || a.status === 'late').length;
+    const present = progAtt.filter(a => a.status === 'present').length;
     const total = progAtt.length;
     
     return { inc, exp, net: inc - exp, present, total, rate: total > 0 ? Math.round((present / total) * 100) : 0 };

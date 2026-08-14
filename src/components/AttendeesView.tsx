@@ -167,7 +167,17 @@ export const AttendeesView: React.FC<AttendeesViewProps> = ({
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-base">{att.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-base">{att.name}</h3>
+                    <button
+                      type="button"
+                      onClick={() => onEditAttendee(att)}
+                      className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                      title="Edit Details"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   {att.organization && (
                     <p className="text-xs text-indigo-600 font-semibold mt-0.5 flex items-center gap-1">
                       <Building className="w-3 h-3 text-indigo-400" />

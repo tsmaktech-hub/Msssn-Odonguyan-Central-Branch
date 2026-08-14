@@ -170,6 +170,10 @@ export default function App() {
     setAttendees(prev => [newMember, ...prev]);
   };
 
+  const handleEditAttendee = (id: string, updatedData: Partial<Attendee>) => {
+    setAttendees(prev => prev.map(a => a.id === id ? { ...a, ...updatedData } : a));
+  };
+
   const handleDeleteAttendee = (id: string) => {
     setAttendees(prev => prev.filter(a => a.id !== id));
     setAttendance(prev => prev.filter(a => a.attendeeId !== id));
@@ -301,6 +305,7 @@ export default function App() {
           lastSync={lastSync}
           onUpdateAttendance={handleUpdateAttendance}
           onAddAttendee={handleAddAttendee}
+          onEditAttendee={handleEditAttendee}
           onDeleteAttendee={handleDeleteAttendee}
           onStartNewSeason={handleStartNewSeason}
           onSyncAttendance={handleSyncAttendance}

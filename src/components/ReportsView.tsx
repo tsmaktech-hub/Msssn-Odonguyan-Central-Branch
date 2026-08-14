@@ -62,13 +62,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const programAttendanceData = programs.map((prog) => {
     const progAtt = attendance.filter(a => a.programId === prog.id);
     const present = progAtt.filter(a => a.status === 'present').length;
-    const late = progAtt.filter(a => a.status === 'late').length;
-    const absent = progAtt.filter(a => a.status === 'absent').length;
+    const absent = attendees.length > present ? attendees.length - present : 0;
 
     return {
       name: prog.title.length > 18 ? prog.title.slice(0, 18) + '...' : prog.title,
       Present: present,
-      Late: late,
       Absent: absent,
     };
   });
@@ -151,7 +149,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         {/* Attendance Comparison Bar Chart */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
           <h3 className="text-base font-bold text-slate-900 mb-1">Program Attendance Comparison</h3>
-          <p className="text-xs text-slate-500 mb-6">Present, Late, and Absent turnouts per event</p>
+          <p className="text-xs text-slate-500 mb-6">Present and Absent turnouts per event</p>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={programAttendanceData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
@@ -160,9 +158,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="Present" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Late" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Absent" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Present" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Absent" fill="#f43f5e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

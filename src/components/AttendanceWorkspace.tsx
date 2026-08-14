@@ -31,7 +31,8 @@ import {
   FileSpreadsheet,
   Plus,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Pencil
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
 
@@ -51,6 +52,7 @@ interface AttendanceWorkspaceProps {
   // Handlers
   onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string) => void;
   onAddAttendee: (memberData: Omit<Attendee, 'id' | 'createdAt'>) => void;
+  onEditAttendee?: (id: string, updatedData: Partial<Attendee>) => void;
   onDeleteAttendee: (id: string) => void;
   onStartNewSeason: (newSeasonName: string) => void;
   onSyncAttendance: () => void;
@@ -70,6 +72,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   lastSync,
   onUpdateAttendance,
   onAddAttendee,
+  onEditAttendee,
   onDeleteAttendee,
   onStartNewSeason,
   onSyncAttendance,
@@ -90,6 +93,50 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const [newMemberCategory, setNewMemberCategory] = useState<any>('Undergraduate');
   const [newMemberInstitution, setNewMemberInstitution] = useState('');
   const [newMemberRegNo, setNewMemberRegNo] = useState('');
+
+  // Edit Member Modal state
+  const [editingMember, setEditingMember] = useState<Attendee | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGender, setEditGender] = useState<GenderType>('Brother');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editCategory, setEditCategory] = useState<any>('Undergraduate');
+  const [editInstitution, setEditInstitution] = useState('');
+  const [editRegNo, setEditRegNo] = useState('');
+
+  const handleOpenEditMember = (member: Attendee) => {
+    setEditingMember(member);
+    setEditName(member.name || '');
+    setEditGender(member.gender || 'Brother');
+    setEditPhone(member.phone || '');
+    setEditEmail(member.email || '');
+    setEditCategory(member.category || 'Undergraduate');
+    setEditInstitution(member.institution || '');
+    setEditRegNo(member.regNo || '');
+  };
+
+  const handleSaveEditMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    if (!editName.trim()) {
+      alert('Please enter member name.');
+      return;
+    }
+
+    if (onEditAttendee) {
+      onEditAttendee(editingMember.id, {
+        name: editName.trim(),
+        gender: editGender,
+        phone: editPhone.trim() || undefined,
+        email: editEmail.trim() || undefined,
+        category: editCategory,
+        institution: editInstitution.trim() || undefined,
+        regNo: editRegNo.trim() || undefined,
+      });
+    }
+
+    setEditingMember(null);
+  };
 
   // New Season Modal state
   const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
@@ -151,14 +198,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     .filter(a => a.gender === 'Brother')
     .filter(a => {
       const rec = getRecordForMember(a.id);
-      return rec?.status === 'present' || rec?.status === 'late';
+      return rec?.status === 'present';
     }).length;
 
   const sistersPresentCount = attendees
     .filter(a => a.gender === 'Sister')
     .filter(a => {
       const rec = getRecordForMember(a.id);
-      return rec?.status === 'present' || rec?.status === 'late';
+      return rec?.status === 'present';
     }).length;
 
   // Handle Submit New Member
@@ -409,35 +456,33 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             <div className="bg-slate-100 p-1.5 sm:p-2 border-b border-slate-200">
               <button
                 onClick={() => setSelectedGenderTab('sisters')}
-                className="w-full py-2 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 bg-teal-800 text-white shadow-sm transition-all"
+                className="w-full py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 bg-teal-800 text-white shadow-sm transition-all"
               >
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-teal-200" />
-                  <span>Sisters</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-400 text-emerald-950">
+                <Users className="w-4 h-4 text-teal-200" />
+                <span>Sisters</span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-400 text-teal-950 shadow-xs">
                   {totalSisters}
                 </span>
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 bg-slate-100 p-1.5 sm:p-2 border-b border-slate-200 gap-1">
+            <div className="grid grid-cols-3 bg-slate-100 p-1.5 sm:p-2 border-b border-slate-200 gap-1.5">
               
               {/* BROTHERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('brothers')}
-                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'brothers'
                     ? 'bg-emerald-800 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  <span className="truncate">Brothers</span>
-                </div>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                  selectedGenderTab === 'brothers' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span>Brothers</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                  selectedGenderTab === 'brothers'
+                    ? 'bg-amber-400 text-emerald-950 shadow-xs'
+                    : 'bg-slate-200 text-slate-700'
                 }`}>
                   {totalBrothers}
                 </span>
@@ -446,18 +491,18 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               {/* SISTERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('sisters')}
-                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'sisters'
                     ? 'bg-teal-800 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  <span className="truncate">Sisters</span>
-                </div>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                  selectedGenderTab === 'sisters' ? 'bg-amber-400 text-emerald-950' : 'bg-slate-200 text-slate-700'
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span>Sisters</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                  selectedGenderTab === 'sisters'
+                    ? 'bg-amber-400 text-teal-950 shadow-xs'
+                    : 'bg-slate-200 text-slate-700'
                 }`}>
                   {totalSisters}
                 </span>
@@ -466,18 +511,18 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               {/* ALL MEMBERS TAB */}
               <button
                 onClick={() => setSelectedGenderTab('all')}
-                className={`py-2 sm:py-3 px-1.5 sm:px-3 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all ${
+                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm flex flex-row items-center justify-center gap-2 transition-all whitespace-nowrap ${
                   selectedGenderTab === 'all'
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  <span className="truncate">All</span>
-                </div>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
-                  selectedGenderTab === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span>All</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold transition-colors ${
+                  selectedGenderTab === 'all'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'bg-slate-200 text-slate-700'
                 }`}>
                   {attendees.length}
                 </span>
@@ -548,8 +593,16 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     {/* Member Top Bar */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-bold text-sm text-slate-900 leading-tight">{member.name}</p>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditMember(member)}
+                            className="p-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors cursor-pointer"
+                            title="Edit Member Details"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
                           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                             member.gender === 'Brother' 
                               ? 'bg-emerald-100 text-emerald-800' 
@@ -564,76 +617,46 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => {
                           if (confirm(`Are you sure you want to delete ${member.name}?`)) {
                             onDeleteAttendee(member.id);
                           }
                         }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete Member"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    {/* Check-In Action Buttons */}
-                    <div className="grid grid-cols-4 gap-1.5">
+                    {/* Check-In Action Buttons: Present & Absent */}
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'present')}
-                        className={`py-1.5 rounded-lg text-xs font-bold text-center transition-all ${
+                        className={`py-2 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all ${
                           currentStatus === 'present'
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-700 hover:bg-emerald-50'
+                            ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/20'
+                            : 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
                         }`}
                       >
+                        <Check className="w-3.5 h-3.5" />
                         Present
                       </button>
                       <button
                         type="button"
-                        onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'late')}
-                        className={`py-1.5 rounded-lg text-xs font-bold text-center transition-all ${
-                          currentStatus === 'late'
-                            ? 'bg-amber-500 text-slate-950 shadow-sm'
-                            : 'bg-slate-100 text-slate-700 hover:bg-amber-50'
-                        }`}
-                      >
-                        Late
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'absent')}
-                        className={`py-1.5 rounded-lg text-xs font-bold text-center transition-all ${
+                        className={`py-2 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all ${
                           currentStatus === 'absent'
-                            ? 'bg-red-600 text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-700 hover:bg-red-50'
+                            ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-500/20'
+                            : 'bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-800'
                         }`}
                       >
+                        <XCircle className="w-3.5 h-3.5" />
                         Absent
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'excused')}
-                        className={`py-1.5 rounded-lg text-xs font-bold text-center transition-all ${
-                          currentStatus === 'excused'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-700 hover:bg-blue-50'
-                        }`}
-                      >
-                        Excused
-                      </button>
                     </div>
-
-                    {/* Quick Note Input */}
-                    <input
-                      type="text"
-                      defaultValue={record?.notes || ''}
-                      onBlur={(e) => {
-                        onUpdateAttendance(selectedProgramId, member.id, currentStatus, e.target.value);
-                      }}
-                      placeholder="Add note / remark..."
-                      className="w-full px-2.5 py-1 text-[11px] border border-slate-200 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none"
-                    />
                   </div>
                 );
               })
@@ -649,14 +672,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   <th className="py-3.5 px-4">Gender</th>
                   <th className="py-3.5 px-4">Category / Institution</th>
                   <th className="py-3.5 px-6 text-center">Check-In Status</th>
-                  <th className="py-3.5 px-4">Notes / Remarks</th>
                   <th className="py-3.5 px-4 text-right">Delete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <td colSpan={5} className="py-12 text-center text-slate-500">
                       <p className="font-bold text-slate-700">No members found</p>
                       <p className="text-xs text-slate-400 mt-1">
                         Click "Update New Member" to add names to the roster.
@@ -674,7 +696,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                         {/* Member Name & Phone */}
                         <td className="py-4 px-6">
                           <div>
-                            <p className="font-bold text-slate-900">{member.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900">{member.name}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditMember(member)}
+                                className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                                title="Edit details for this member"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-emerald-700" />
+                              </button>
+                            </div>
                             {member.phone && <p className="text-xs text-slate-500">{member.phone}</p>}
                           </div>
                         </td>
@@ -696,15 +728,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                           <p className="text-xs text-slate-400">{member.regNo || member.institution || 'MSSN Odonguyan'}</p>
                         </td>
 
-                        {/* Check-In Status Toggles */}
+                        {/* Check-In Status Toggles (Present & Absent) */}
                         <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-1 bg-slate-100 p-1 rounded-2xl w-fit mx-auto border border-slate-200">
+                          <div className="flex items-center justify-center gap-1.5 bg-slate-100 p-1 rounded-2xl w-fit mx-auto border border-slate-200">
                             
                             {/* Present */}
                             <button
                               type="button"
                               onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'present')}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all ${
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
                                 currentStatus === 'present'
                                   ? 'bg-emerald-600 text-white shadow-sm'
                                   : 'text-slate-600 hover:text-emerald-700'
@@ -714,25 +746,11 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                               <span>Present</span>
                             </button>
 
-                            {/* Late */}
-                            <button
-                              type="button"
-                              onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'late')}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all ${
-                                currentStatus === 'late'
-                                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                                  : 'text-slate-600 hover:text-amber-700'
-                              }`}
-                            >
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>Late</span>
-                            </button>
-
                             {/* Absent */}
                             <button
                               type="button"
                               onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'absent')}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all ${
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
                                 currentStatus === 'absent'
                                   ? 'bg-red-600 text-white shadow-sm'
                                   : 'text-slate-600 hover:text-red-700'
@@ -742,45 +760,19 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                               <span>Absent</span>
                             </button>
 
-                            {/* Excused */}
-                            <button
-                              type="button"
-                              onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'excused')}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all ${
-                                currentStatus === 'excused'
-                                  ? 'bg-blue-600 text-white shadow-sm'
-                                  : 'text-slate-600 hover:text-blue-700'
-                              }`}
-                            >
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              <span>Excused</span>
-                            </button>
-
                           </div>
-                        </td>
-
-                        {/* Individual Notes */}
-                        <td className="py-4 px-4">
-                          <input
-                            type="text"
-                            defaultValue={record?.notes || ''}
-                            onBlur={(e) => {
-                              onUpdateAttendance(selectedProgramId, member.id, currentStatus, e.target.value);
-                            }}
-                            placeholder="Add note..."
-                            className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none"
-                          />
                         </td>
 
                         {/* Individual Delete Button */}
                         <td className="py-4 px-4 text-right">
                           <button
+                            type="button"
                             onClick={() => {
                               if (confirm(`Are you sure you want to delete ${member.name} from the roster? This member will be permanently removed.`)) {
                                 onDeleteAttendee(member.id);
                               }
                             }}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                             title="Delete Member One by One"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -912,6 +904,157 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
                 >
                   Save Member Name
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: EDIT MEMBER DETAILS */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Edit Member Details</h3>
+                  <p className="text-xs text-slate-500">Update personal information, contacts, or institution</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingMember(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditMember} className="space-y-4">
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Brother Usman Bello or Sister Zainab Quadri"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Gender *
+                  </label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value as GenderType)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                  >
+                    <option value="Brother">Brother (Boy)</option>
+                    <option value="Sister">Sister (Girl)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="e.g. 08012345678"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Category / Level
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                  >
+                    <option value="Undergraduate">Undergraduate</option>
+                    <option value="Secondary Student">Secondary Student</option>
+                    <option value="Alumni / Working Class">Alumni / Working Class</option>
+                    <option value="Executive / Staff">Executive / Staff</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Registration / Reg No
+                  </label>
+                  <input
+                    type="text"
+                    value={editRegNo}
+                    onChange={(e) => setEditRegNo(e.target.value)}
+                    placeholder="e.g. MSSN/2026/042"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    School / Institution
+                  </label>
+                  <input
+                    type="text"
+                    value={editInstitution}
+                    onChange={(e) => setEditInstitution(e.target.value)}
+                    placeholder="e.g. Odonguyan Grammar School"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Email Address (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="e.g. member@mssn.org"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  Save Changes
                 </button>
               </div>
 
