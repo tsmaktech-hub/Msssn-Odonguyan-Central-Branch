@@ -56,6 +56,8 @@ export interface AttendanceRecord {
   checkInTime?: string;
   notes?: string;
   updatedAt: string;
+  isSynced?: boolean;
+  syncedAt?: string;
 }
 
 export type TransactionType = 'income' | 'expense';

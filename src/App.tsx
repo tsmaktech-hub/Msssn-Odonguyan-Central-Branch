@@ -131,7 +131,8 @@ export default function App() {
     programId: string, 
     attendeeId: string, 
     status: AttendanceStatus, 
-    notes?: string
+    notes?: string,
+    isSynced?: boolean
   ) => {
     const existingIndex = attendance.findIndex(a => a.programId === programId && a.attendeeId === attendeeId);
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -141,9 +142,10 @@ export default function App() {
       updated[existingIndex] = {
         ...updated[existingIndex],
         status,
-        checkInTime: status === 'present' || status === 'late' ? nowTime : undefined,
+        checkInTime: status === 'present' || status === 'late' ? (updated[existingIndex].checkInTime || nowTime) : undefined,
         notes: notes !== undefined ? notes : updated[existingIndex].notes,
         updatedAt: new Date().toISOString(),
+        isSynced: isSynced !== undefined ? isSynced : false,
       };
       setAttendance(updated);
     } else {
@@ -156,6 +158,7 @@ export default function App() {
         checkInTime: status === 'present' || status === 'late' ? nowTime : undefined,
         notes,
         updatedAt: new Date().toISOString(),
+        isSynced: isSynced !== undefined ? isSynced : false,
       };
       setAttendance(prev => [...prev, newRec]);
     }
@@ -198,13 +201,63 @@ export default function App() {
   };
 
   // Sync Attendance Handler
-  const handleSyncAttendance = () => {
+  const handleSyncAttendance = (currentProgramId?: string): string => {
+    const targetProg = programs.find(p => p.id === currentProgramId) || programs[0];
+    const targetProgId = targetProg?.id;
+
+    // 1. When syncing attendance: mark all recorded check-ins for target program as synced and timestamp them
+    setAttendance(prev => prev.map(rec => {
+      if (!targetProgId || rec.programId === targetProgId) {
+        return {
+          ...rec,
+          isSynced: true,
+          syncedAt: rec.syncedAt || new Date().toISOString(),
+        };
+      }
+      return rec;
+    }));
+
+    // 2. Mark the current synced program as completed
+    setPrograms(prev => prev.map(p => p.id === targetProgId ? { ...p, status: 'completed' as const } : p));
+
+    // 3. Compute next session date (+7 days)
+    let nextDateStr = new Date().toISOString().slice(0, 10);
+    if (targetProg?.date) {
+      try {
+        const d = new Date(targetProg.date + 'T00:00:00');
+        d.setDate(d.getDate() + 7);
+        nextDateStr = d.toISOString().slice(0, 10);
+      } catch {
+        nextDateStr = new Date().toISOString().slice(0, 10);
+      }
+    }
+
+    // 4. Create the next active session in the same stream
+    const nextProgId = `prog-${Date.now()}`;
+    const nextProg: Program = {
+      id: nextProgId,
+      title: targetProg?.title || 'Weekly Usrah (Brothers/Sisters)',
+      category: targetProg?.category || 'Usrah Meeting',
+      date: nextDateStr,
+      time: targetProg?.time || '10:00 AM - 01:00 PM',
+      location: targetProg?.location || 'Odonguyan Central Mosque Hall',
+      description: targetProg?.description || 'Weekly spiritual circle, Quranic commentary, and student welfare meeting.',
+      status: 'active',
+      seasonId: activeSeasonId,
+      createdAt: new Date().toISOString(),
+    };
+
+    setPrograms(prev => [...prev, nextProg]);
+
+    // 5. Log the sync event
     const log: SyncLog = {
       timestamp: new Date().toISOString(),
-      recordsCount: attendance.length,
+      recordsCount: attendance.filter(a => (!targetProgId || a.programId === targetProgId) && Boolean(a.status)).length,
       syncedBy: attendanceUser?.name || 'Attendance Officer',
     };
     setLastSync(log);
+
+    return nextProgId;
   };
 
   const handleMarkAllPresent = (programId: string, genderFilter?: GenderType) => {
@@ -226,6 +279,7 @@ export default function App() {
         checkInTime: existing?.checkInTime || nowTime,
         notes: existing?.notes,
         updatedAt: new Date().toISOString(),
+        isSynced: false,
       };
     });
 
@@ -243,8 +297,32 @@ export default function App() {
     setAttendance(prev => prev.filter(a => a.programId !== programId));
   };
 
-  const handleUpdateProgramDate = (programId: string, newDate: string) => {
-    setPrograms(prev => prev.map(p => p.id === programId ? { ...p, date: newDate } : p));
+  const handleUpdateProgramDate = (programId: string, newDate: string): string => {
+    const targetProg = programs.find(p => p.id === programId);
+    if (targetProg?.status === 'completed') {
+      const existingDraft = programs.find(p => p.title === targetProg.title && p.date === newDate);
+      if (existingDraft) {
+        return existingDraft.id;
+      }
+      const newDraftId = `prog-${Date.now()}`;
+      const newDraft: Program = {
+        id: newDraftId,
+        title: targetProg.title,
+        category: targetProg.category,
+        date: newDate,
+        time: targetProg.time,
+        location: targetProg.location,
+        description: targetProg.description,
+        status: 'active',
+        seasonId: activeSeasonId,
+        createdAt: new Date().toISOString(),
+      };
+      setPrograms(prev => [...prev, newDraft]);
+      return newDraftId;
+    } else {
+      setPrograms(prev => prev.map(p => p.id === programId ? { ...p, date: newDate } : p));
+      return programId;
+    }
   };
 
   // Finance Actions

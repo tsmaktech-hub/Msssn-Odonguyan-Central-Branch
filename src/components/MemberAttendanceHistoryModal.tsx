@@ -23,7 +23,7 @@ interface MemberAttendanceHistoryModalProps {
   member: Attendee | null;
   programs: Program[];
   attendance: AttendanceRecord[];
-  onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string) => void;
+  onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string, isSynced?: boolean) => void;
 }
 
 export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModalProps> = ({
@@ -43,11 +43,11 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Compute history ONLY for sessions that have been synced / recorded
+  // Compute history ONLY for sessions that have been synced
   const historyList = sortedPrograms
     .map((prog, index) => {
-      const record = attendance.find(a => a.programId === prog.id && a.attendeeId === member.id);
-      const isRecorded = Boolean(record && record.status);
+      const record = attendance.find(a => a.programId === prog.id && a.attendeeId === member.id && a.isSynced);
+      const isRecorded = Boolean(record && record.status && record.isSynced);
       const isPresent = isRecorded && (record?.status === 'present' || record?.status === 'late');
       const isAbsent = isRecorded && record?.status === 'absent';
       
@@ -81,7 +81,7 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
         notes: record?.notes,
       };
     })
-    .filter(item => item.isRecorded); // ONLY show synced / recorded sessions
+    .filter(item => item.isRecorded); // ONLY show synced sessions
 
   const attendedCount = historyList.filter(item => item.isPresent).length;
   const missedCount = historyList.filter(item => item.isAbsent).length;
@@ -321,7 +321,7 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
                     type="button"
                     onClick={() => {
                       const newStatus: AttendanceStatus = item.isPresent ? 'absent' : 'present';
-                      onUpdateAttendance(item.program.id, member.id, newStatus);
+                      onUpdateAttendance(item.program.id, member.id, newStatus, undefined, true);
                     }}
                     className={`p-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
                       item.isPresent

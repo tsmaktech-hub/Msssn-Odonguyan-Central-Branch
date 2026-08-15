@@ -55,15 +55,15 @@ interface AttendanceWorkspaceProps {
   lastSync: SyncLog | null;
 
   // Handlers
-  onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string) => void;
+  onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string, isSynced?: boolean) => void;
   onAddAttendee: (memberData: Omit<Attendee, 'id' | 'createdAt'>) => void;
   onEditAttendee?: (id: string, updatedData: Partial<Attendee>) => void;
   onDeleteAttendee: (id: string) => void;
   onStartNewSeason: (newSeasonName: string) => void;
-  onSyncAttendance: () => void;
+  onSyncAttendance: (currentProgramId?: string) => string | void;
   onMarkAllPresent: (programId: string, genderFilter?: GenderType) => void;
   onClearAttendance: (programId: string) => void;
-  onUpdateProgramDate?: (programId: string, newDate: string) => void;
+  onUpdateProgramDate?: (programId: string, newDate: string) => string | void;
 }
 
 export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
@@ -158,53 +158,6 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Sync Toast State
   const [showSyncToast, setShowSyncToast] = useState(false);
 
-  // 5 Recent Sessions for 5-indicator dots (sorted descending by date)
-  const syncedSessions = useMemo(() => {
-    return [...programs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [programs]);
-
-  // Compute attendance stats and 5-session dot indicators for a given member
-  const getMemberAttendanceStats = (memberId: string) => {
-    const memberRecords = attendance.filter(a => a.attendeeId === memberId && Boolean(a.status));
-    const totalAttended = memberRecords.filter(a => a.status === 'present' || a.status === 'late').length;
-
-    // 5 Dots shifting sequence:
-    // Slot 0 is Day 1 (if 1 session exists), or Day 6 (if 6 sessions exist), or Day 7 (if 7 sessions exist).
-    const fiveDots = [0, 1, 2, 3, 4].map(idx => {
-      const prog = syncedSessions[idx];
-      if (!prog) {
-        return {
-          dayIndex: idx + 1,
-          isRecorded: false,
-          isPresent: false,
-          isAbsent: false,
-          tooltip: `Session ${idx + 1}: Not recorded yet`
-        };
-      }
-
-      const rec = attendance.find(a => a.programId === prog.id && a.attendeeId === memberId);
-      const isRecorded = Boolean(rec && rec.status);
-      const isPresent = isRecorded && (rec?.status === 'present' || rec?.status === 'late');
-      const isAbsent = isRecorded && rec?.status === 'absent';
-
-      return {
-        dayIndex: idx + 1,
-        program: prog,
-        isRecorded,
-        isPresent,
-        isAbsent,
-        tooltip: isRecorded 
-          ? `${prog.title} (${prog.date}): ${isPresent ? 'Present (Came)' : 'Absent (Did not come)'}`
-          : `Session ${idx + 1} (${prog.date}): Not recorded yet`
-      };
-    });
-
-    return {
-      totalAttended,
-      fiveDots,
-    };
-  };
-
   // Active program & season objects
   const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
@@ -217,6 +170,73 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       activeProgram.title.toLowerCase().includes('sister circle')) &&
     !activeProgram.title.toLowerCase().includes('brother')
   );
+
+  // Compute attendance stats and 5-session dot indicators for a given member
+  const getMemberAttendanceStats = (memberId: string) => {
+    // Helper to check if program is Sisters Circle Usrah
+    const isSistersProg = (p?: Program) => 
+      Boolean(p && (
+        p.category === 'Sisters Wing' || 
+        p.title.toLowerCase().includes('sisters circle') || 
+        p.title.toLowerCase().includes('sister circle')
+      ));
+
+    const activeIsSisters = isSistersProg(activeProgram);
+
+    // Filter synced sessions matching the active program stream (Sisters Circle vs General Usrah)
+    // Sorted chronologically ascending (earliest / Day 1 first)
+    const syncedStreamPrograms = programs
+      .filter(p => isSistersProg(p) === activeIsSisters && attendance.some(a => a.programId === p.id && a.isSynced))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.createdAt.localeCompare(b.createdAt));
+
+    const memberRecords = attendance.filter(a => {
+      if (a.attendeeId !== memberId || !a.isSynced) return false;
+      const prog = programs.find(p => p.id === a.programId);
+      return prog && isSistersProg(prog) === activeIsSisters;
+    });
+    const totalAttended = memberRecords.filter(a => a.status === 'present' || a.status === 'late').length;
+
+    // Display 5 dots in chronological order:
+    // If <= 5 synced sessions, display slots 0..4 (Day 1, Day 2, Day 3, Day 4, Day 5)
+    // If > 5 synced sessions, display rolling window of the 5 most recent synced sessions (slice(-5))
+    const displaySessions = syncedStreamPrograms.length > 5
+      ? syncedStreamPrograms.slice(-5)
+      : syncedStreamPrograms;
+
+    const fiveDots = [0, 1, 2, 3, 4].map(idx => {
+      const prog = displaySessions[idx];
+      if (!prog) {
+        return {
+          dayIndex: idx + 1,
+          isRecorded: false,
+          isPresent: false,
+          isAbsent: false,
+          tooltip: `Session ${idx + 1}: Not synced yet`
+        };
+      }
+
+      const rec = attendance.find(a => a.programId === prog.id && a.attendeeId === memberId && a.isSynced);
+      const isRecorded = Boolean(rec && rec.status && rec.isSynced);
+      const isPresent = isRecorded && (rec?.status === 'present' || rec?.status === 'late');
+      const isAbsent = isRecorded && rec?.status === 'absent';
+
+      return {
+        dayIndex: idx + 1,
+        program: prog,
+        isRecorded,
+        isPresent,
+        isAbsent,
+        tooltip: isRecorded 
+          ? `Day ${idx + 1} • ${prog.title} (${prog.date}): ${isPresent ? 'Present (Came)' : 'Absent (Did not come)'}`
+          : `Day ${idx + 1} • ${prog.title} (${prog.date}): Not synced yet`
+      };
+    });
+
+    return {
+      totalAttended,
+      fiveDots,
+    };
+  };
 
   // Filter members by gender tab & search query
   const filteredMembers = attendees.filter(att => {
@@ -297,7 +317,10 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
   // Handle Sync Button
   const handleSyncClick = () => {
-    onSyncAttendance();
+    const nextProgId = onSyncAttendance(selectedProgramId);
+    if (nextProgId) {
+      setSelectedProgramId(nextProgId);
+    }
     setShowSyncToast(true);
     setTimeout(() => setShowSyncToast(false), 4000);
   };
@@ -497,7 +520,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               >
                 {programs.map(prog => (
                   <option key={prog.id} value={prog.id}>
-                    {prog.title}
+                    {prog.title} • {prog.date} {prog.status === 'completed' ? '(Synced)' : '(Active)'}
                   </option>
                 ))}
               </select>
@@ -515,7 +538,10 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   value={activeProgram?.date || ''}
                   onChange={(e) => {
                     if (activeProgram && onUpdateProgramDate) {
-                      onUpdateProgramDate(activeProgram.id, e.target.value);
+                      const newProgId = onUpdateProgramDate(activeProgram.id, e.target.value);
+                      if (newProgId && newProgId !== activeProgram.id) {
+                        setSelectedProgramId(newProgId);
+                      }
                     }
                   }}
                   className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -525,7 +551,10 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   onClick={() => {
                     const todayStr = new Date().toISOString().slice(0, 10);
                     if (activeProgram && onUpdateProgramDate) {
-                      onUpdateProgramDate(activeProgram.id, todayStr);
+                      const newProgId = onUpdateProgramDate(activeProgram.id, todayStr);
+                      if (newProgId && newProgId !== activeProgram.id) {
+                        setSelectedProgramId(newProgId);
+                      }
                     }
                   }}
                   className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition-colors cursor-pointer"
@@ -694,7 +723,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             ) : (
               filteredMembers.map((member) => {
                 const record = getRecordForMember(member.id);
-                const currentStatus = record?.status || 'absent';
+                const currentStatus = record && !record.isSynced ? record.status : undefined;
                 const memberStats = getMemberAttendanceStats(member.id);
 
                 return (
@@ -849,7 +878,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 ) : (
                   filteredMembers.map((member) => {
                     const record = getRecordForMember(member.id);
-                    const currentStatus = record?.status || 'absent';
+                    const currentStatus = record && !record.isSynced ? record.status : undefined;
                     const memberStats = getMemberAttendanceStats(member.id);
 
                     return (
@@ -947,10 +976,10 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'present')}
-                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                                 currentStatus === 'present'
-                                  ? 'bg-emerald-600 text-white shadow-sm'
-                                  : 'text-slate-600 hover:text-emerald-700'
+                                  ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/20'
+                                  : 'text-slate-600 hover:text-emerald-800 hover:bg-emerald-50'
                               }`}
                             >
                               <Check className="w-3.5 h-3.5" />
@@ -961,10 +990,10 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onUpdateAttendance(selectedProgramId, member.id, 'absent')}
-                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                                 currentStatus === 'absent'
-                                  ? 'bg-red-600 text-white shadow-sm'
-                                  : 'text-slate-600 hover:text-red-700'
+                                  ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-500/20'
+                                  : 'text-slate-600 hover:text-red-800 hover:bg-red-50'
                               }`}
                             >
                               <XCircle className="w-3.5 h-3.5" />
