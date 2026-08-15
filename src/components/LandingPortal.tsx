@@ -40,9 +40,9 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             {/* Logo & Branch Name */}
             <div className="flex items-center gap-2.5 sm:gap-4 text-center md:text-left">
               <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1Vq1r0DLsLGgotHmTHZi9bH4W-DUf4pVz" 
-                alt="MSSN Odonguyan Logo" 
-                className="w-11 h-11 sm:w-14 sm:h-14 object-contain shrink-0 rounded-xl drop-shadow-md transition-transform hover:scale-105 duration-300" 
+                src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+                alt="MSSN Executives Logo" 
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain shrink-0 rounded-2xl drop-shadow-lg transition-transform hover:scale-105 duration-300" 
                 referrerPolicy="no-referrer"
               />
               <div>

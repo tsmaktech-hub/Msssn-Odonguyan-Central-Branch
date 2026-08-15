@@ -55,18 +55,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-              <Building2 className="w-5 h-5" />
-            </div>
+            <img 
+              src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+              alt="MSSN Executives Logo" 
+              className="w-11 h-11 object-contain rounded-xl drop-shadow" 
+              referrerPolicy="no-referrer"
+            />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-lg tracking-tight text-slate-100">AttendaFin</h1>
-                <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">
-                  Pro
+                <h1 className="font-bold text-lg tracking-tight text-slate-100">MSSN Executives</h1>
+                <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
+                  Portal
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                Event Attendance & Financial Records System
+                Odonguyan Central Branch Executive Portal
               </p>
             </div>
           </div>

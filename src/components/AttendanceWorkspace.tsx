@@ -366,9 +366,9 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             </button>
             <div className="flex items-center gap-2 sm:gap-3">
               <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1Vq1r0DLsLGgotHmTHZi9bH4W-DUf4pVz" 
-                alt="MSSN Logo" 
-                className="w-8 h-8 sm:w-12 sm:h-12 object-contain shrink-0 rounded-lg drop-shadow" 
+                src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+                alt="MSSN Executives Logo" 
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 object-contain shrink-0 rounded-xl drop-shadow-md" 
                 referrerPolicy="no-referrer"
               />
               <div>

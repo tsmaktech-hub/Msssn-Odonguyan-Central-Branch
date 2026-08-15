@@ -140,9 +140,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Header - Centered Logo Only */}
         <div className="p-4 pt-6 text-center flex flex-col items-center justify-center bg-white border-b border-slate-100">
           <img 
-            src="https://lh3.googleusercontent.com/u/0/d/1Vq1r0DLsLGgotHmTHZi9bH4W-DUf4pVz" 
-            alt="MSSN Logo" 
-            className="w-14 h-14 sm:w-16 sm:h-16 object-contain shrink-0 rounded-xl drop-shadow-sm mx-auto" 
+            src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+            alt="MSSN Executives Logo" 
+            className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0 rounded-2xl drop-shadow-md mx-auto" 
             referrerPolicy="no-referrer"
           />
         </div>
