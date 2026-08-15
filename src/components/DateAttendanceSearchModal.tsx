@@ -10,7 +10,6 @@ import {
   Users, 
   FileSpreadsheet, 
   CalendarDays,
-  History,
   Phone,
   School
 } from 'lucide-react';
@@ -434,21 +433,7 @@ export const DateAttendanceSearchModal: React.FC<DateAttendanceSearchModalProps>
                 </div>
 
                 {/* Status Badge & Actions */}
-                <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 shrink-0">
-                  
-                  {/* Check Member History Button */}
-                  {onSelectMemberHistory && (
-                    <button
-                      type="button"
-                      onClick={() => onSelectMemberHistory(item.member)}
-                      className="px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl border border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-white text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                      title="Check all attendance history for this member"
-                    >
-                      <History className="w-3 h-3 text-indigo-600" />
-                      <span>Check mem</span>
-                    </button>
-                  )}
-
+                <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
                   {item.isRecorded ? (
                     <>
                       <span className={`px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black flex items-center gap-1 shadow-2xs ${
