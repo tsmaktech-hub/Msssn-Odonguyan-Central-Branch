@@ -141,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-4 pt-6 text-center flex flex-col items-center justify-center bg-white border-b border-slate-100">
           <img 
             src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
-            alt="MSSN Executives Logo" 
+            alt="MSSN Odonguyan Executives Logo" 
             className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0 rounded-2xl drop-shadow-md mx-auto" 
             referrerPolicy="no-referrer"
           />

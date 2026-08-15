@@ -57,13 +57,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-3">
             <img 
               src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
-              alt="MSSN Executives Logo" 
+              alt="MSSN Odonguyan Executives Logo" 
               className="w-11 h-11 object-contain rounded-xl drop-shadow" 
               referrerPolicy="no-referrer"
             />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-lg tracking-tight text-slate-100">MSSN Executives</h1>
+                <h1 className="font-bold text-lg tracking-tight text-slate-100">MSSN Odonguyan Executives</h1>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
                   Portal
                 </span>
