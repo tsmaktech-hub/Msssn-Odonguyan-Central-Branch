@@ -100,17 +100,17 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
-        <div className="bg-emerald-900 text-white p-4 sm:p-6 relative">
+        <div className="bg-emerald-900 text-white p-3.5 sm:p-6 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 hover:text-white transition-colors cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 hover:text-white transition-colors cursor-pointer z-10"
             title="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          <div className="flex items-start gap-3 sm:gap-4 pr-10">
-            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg sm:text-xl shrink-0 shadow-inner ${
+          <div className="flex items-start gap-2.5 sm:gap-4 pr-9 sm:pr-12">
+            <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-extrabold text-base sm:text-xl shrink-0 shadow-inner ${
               member.gender === 'Brother' 
                 ? 'bg-emerald-700 text-amber-300 border border-emerald-600' 
                 : 'bg-teal-700 text-amber-300 border border-teal-600'
@@ -118,38 +118,40 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
               {member.name.slice(0, 2).toUpperCase()}
             </div>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base sm:text-xl font-bold text-white leading-tight truncate">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-xl font-bold text-white leading-tight break-words">
                   {member.name}
                 </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold ${
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold shrink-0 ${
                   member.gender === 'Brother' 
                     ? 'bg-emerald-800 text-emerald-200 border border-emerald-700' 
                     : 'bg-teal-800 text-teal-200 border border-teal-700'
                 }`}>
                   {member.gender}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-white/10 text-emerald-100 border border-white/10">
-                  {member.category}
-                </span>
+                {member.category && (
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-white/10 text-emerald-100 border border-white/10 shrink-0">
+                    {member.category}
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-emerald-200 mt-1 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-emerald-200 mt-1 flex-wrap">
                 {member.phone && (
                   <span className="flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    {member.phone}
+                    <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                    <span className="truncate">{member.phone}</span>
                   </span>
                 )}
                 {member.institution && (
                   <span className="flex items-center gap-1">
-                    <School className="w-3.5 h-3.5" />
-                    {member.institution}
+                    <School className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                    <span className="truncate">{member.institution}</span>
                   </span>
                 )}
                 {member.regNo && (
-                  <span className="flex items-center gap-1 font-mono text-[11px] bg-emerald-950/60 px-2 py-0.5 rounded-md">
+                  <span className="flex items-center gap-1 font-mono text-[10px] sm:text-[11px] bg-emerald-950/60 px-1.5 sm:px-2 py-0.5 rounded-md">
                     {member.regNo}
                   </span>
                 )}
@@ -159,86 +161,86 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
         </div>
 
         {/* Attendance Summary Stat Cards */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-5 bg-slate-50 border-b border-slate-200">
-          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/80 text-center shadow-xs">
-            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Days Came</p>
-            <p className="text-lg sm:text-2xl font-black text-emerald-700 mt-0.5 flex items-center justify-center gap-1">
-              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 inline" />
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-3 p-2.5 sm:p-4 bg-slate-50 border-b border-slate-200">
+          <div className="bg-white p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/80 text-center shadow-2xs">
+            <p className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Days Came</p>
+            <p className="text-base sm:text-2xl font-black text-emerald-700 mt-0.5 flex items-center justify-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-600 inline shrink-0" />
               <span>{attendedCount}</span>
             </p>
-            <span className="text-[10px] text-emerald-600 font-bold">Attended</span>
+            <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold block">Attended</span>
           </div>
 
-          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/80 text-center shadow-xs">
-            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Days Missed</p>
-            <p className="text-lg sm:text-2xl font-black text-rose-600 mt-0.5 flex items-center justify-center gap-1">
-              <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 inline" />
+          <div className="bg-white p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/80 text-center shadow-2xs">
+            <p className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Days Missed</p>
+            <p className="text-base sm:text-2xl font-black text-rose-600 mt-0.5 flex items-center justify-center gap-1">
+              <XCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-rose-500 inline shrink-0" />
               <span>{missedCount}</span>
             </p>
-            <span className="text-[10px] text-rose-600 font-bold">Absent</span>
+            <span className="text-[9px] sm:text-[10px] text-rose-600 font-bold block">Absent</span>
           </div>
 
-          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/80 text-center shadow-xs">
-            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Attendance Rate</p>
-            <p className="text-lg sm:text-2xl font-black text-slate-900 mt-0.5 flex items-center justify-center gap-1">
-              <Percent className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 inline" />
+          <div className="bg-white p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/80 text-center shadow-2xs">
+            <p className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Attendance</p>
+            <p className="text-base sm:text-2xl font-black text-slate-900 mt-0.5 flex items-center justify-center gap-1">
+              <Percent className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-500 inline shrink-0" />
               <span>{attendanceRate}%</span>
             </p>
-            <span className="text-[10px] text-slate-500 font-medium">
-              {totalSessions === 0 ? 'No records yet' : `${totalSessions} recorded`}
+            <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate block">
+              {totalSessions === 0 ? '0 sessions' : `${totalSessions} sessions`}
             </span>
           </div>
         </div>
 
         {/* Filter Navigation Tabs */}
-        <div className="px-4 sm:px-6 pt-3 pb-2 flex items-center justify-between gap-2 border-b border-slate-100 flex-wrap">
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl flex-wrap">
+        <div className="px-3 sm:px-6 pt-2.5 pb-2 flex items-center justify-between gap-2 border-b border-slate-100 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all ${
                 activeFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All Dates & Days ({totalSessions})
+              All Days ({totalSessions})
             </button>
             <button
               onClick={() => setActiveFilter('attended')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 sm:gap-1.5 ${
                 activeFilter === 'attended'
-                  ? 'bg-emerald-600 text-white shadow-xs'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
                   : 'text-emerald-800 hover:bg-emerald-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Days Came ({attendedCount})
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-300"></span>
+              Came ({attendedCount})
             </button>
             <button
               onClick={() => setActiveFilter('missed')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 sm:gap-1.5 ${
                 activeFilter === 'missed'
-                  ? 'bg-rose-600 text-white shadow-xs'
+                  ? 'bg-rose-600 text-white shadow-2xs'
                   : 'text-rose-800 hover:bg-rose-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-              Days Missed ({missedCount})
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-300"></span>
+              Missed ({missedCount})
             </button>
           </div>
 
-          <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-            Synced attendance sessions
+          <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium hidden md:inline">
+            Synced attendance history
           </span>
         </div>
 
         {/* Dates & Days Session Breakdown List */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-3 flex-1">
+        <div className="p-3 sm:p-6 overflow-y-auto space-y-2.5 sm:space-y-3 flex-1">
           {filteredHistory.length === 0 ? (
-            <div className="text-center py-10 text-slate-500 space-y-2">
-              <Calendar className="w-10 h-10 mx-auto text-slate-300" />
-              <p className="text-sm font-bold text-slate-700">No synced records found for this member</p>
-              <p className="text-xs text-slate-400">
+            <div className="text-center py-8 sm:py-10 text-slate-500 space-y-2 px-2">
+              <Calendar className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-slate-300" />
+              <p className="text-xs sm:text-sm font-bold text-slate-700">No synced records found for this filter</p>
+              <p className="text-[11px] sm:text-xs text-slate-400 max-w-sm mx-auto">
                 Mark attendance on the attendance sheet and click <strong>Sync Attendance Sheet</strong> to record attendance dates.
               </p>
             </div>
@@ -246,27 +248,27 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
             filteredHistory.map((item, idx) => (
               <div 
                 key={item.program.id}
-                className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 ${
                   item.isPresent
                     ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50'
                     : 'bg-rose-50/40 border-rose-200/80 hover:bg-rose-50'
                 }`}
               >
                 {/* Date, Day and Program Information */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     {/* Session Counter Badge */}
-                    <span className="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-black flex items-center justify-center">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-800 text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
 
                     {/* Day of Week Badge */}
-                    <span className={`px-2 py-0.5 rounded-lg text-xs font-extrabold flex items-center gap-1 ${
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-extrabold flex items-center gap-1 shrink-0 ${
                       item.isPresent
                         ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                         : 'bg-rose-100 text-rose-900 border border-rose-200'
                     }`}>
-                      <CalendarDays className="w-3.5 h-3.5" />
+                      <CalendarDays className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       {item.dayOfWeek}
                     </span>
 
@@ -276,41 +278,41 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-slate-600 pl-7 flex-wrap">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-600 flex-wrap pt-0.5">
                     <span className="font-semibold text-slate-800">{item.program.title}</span>
                     <span>•</span>
                     <span className="text-slate-500">{item.program.time}</span>
                     {item.program.location && (
                       <>
-                        <span>•</span>
-                        <span className="text-slate-500">{item.program.location}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="text-slate-500 hidden sm:inline">{item.program.location}</span>
                       </>
                     )}
                   </div>
 
                   {item.checkInTime && item.isPresent && (
-                    <p className="text-[11px] text-emerald-700 font-semibold pl-7 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-emerald-600" />
-                      Arrival Time: {item.checkInTime}
+                    <p className="text-[10px] sm:text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span>Arrival Time: {item.checkInTime}</span>
                     </p>
                   )}
                 </div>
 
                 {/* Status Indicator & Quick Action Buttons */}
-                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  <div className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs ${
+                <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 shrink-0">
+                  <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 shadow-2xs ${
                     item.isPresent
                       ? 'bg-emerald-600 text-white'
                       : 'bg-rose-600 text-white'
                   }`}>
                     {item.isPresent ? (
                       <>
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>Came (Present)</span>
                       </>
                     ) : (
                       <>
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>Did Not Come</span>
                       </>
                     )}
@@ -323,10 +325,10 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
                       const newStatus: AttendanceStatus = item.isPresent ? 'absent' : 'present';
                       onUpdateAttendance(item.program.id, member.id, newStatus, undefined, true);
                     }}
-                    className={`p-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border text-[11px] sm:text-xs font-bold transition-colors cursor-pointer ${
                       item.isPresent
-                        ? 'border-rose-300 text-rose-700 hover:bg-rose-100'
-                        : 'border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                        ? 'border-rose-300 text-rose-700 bg-white hover:bg-rose-100'
+                        : 'border-emerald-300 text-emerald-700 bg-white hover:bg-emerald-100'
                     }`}
                     title={item.isPresent ? 'Change to Absent' : 'Change to Present'}
                   >
@@ -339,13 +341,13 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <span className="text-xs text-slate-500 font-medium">
+        <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+          <span className="text-[10px] sm:text-xs text-slate-500 font-medium text-center sm:text-left">
             MSSN Odonguyan Central Branch • Member History
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm"
+            className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm text-center"
           >
             Close History
           </button>

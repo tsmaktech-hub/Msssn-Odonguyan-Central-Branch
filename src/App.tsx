@@ -183,9 +183,10 @@ export default function App() {
   };
 
   // Season Reset Handler
-  const handleStartNewSeason = (newSeasonName: string) => {
+  const handleStartNewSeason = (newSeasonName: string): string => {
+    const newSeasonId = `season-${Date.now()}`;
     const newSeason: Season = {
-      id: `season-${Date.now()}`,
+      id: newSeasonId,
       name: newSeasonName,
       startDate: new Date().toISOString().slice(0, 10),
       isActive: true,
@@ -194,10 +195,47 @@ export default function App() {
 
     // Mark previous active seasons as inactive
     setSeasons(prev => prev.map(s => ({ ...s, isActive: false })).concat(newSeason));
-    setActiveSeasonId(newSeason.id);
+    setActiveSeasonId(newSeasonId);
 
     // RESET ATTENDANCE CHECK-IN SHEET FOR NEW SEASON (Clears status marks, preserves all member names in roster!)
     setAttendance([]);
+    setLastSync(null);
+
+    // Delete all previous synced/completed programs and initialize clean active baseline sessions for the new season
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const mainProgramId = `prog-${Date.now()}-1`;
+    const sistersProgramId = `prog-${Date.now()}-2`;
+
+    const freshPrograms: Program[] = [
+      {
+        id: mainProgramId,
+        title: 'Weekly Usrah (Brothers/Sisters)',
+        category: 'Usrah Meeting',
+        date: todayStr,
+        time: '10:00 AM - 01:00 PM',
+        location: 'Odonguyan Central Mosque Hall',
+        description: 'Weekly spiritual circle, Quranic commentary, Fiqh lectures, and general student welfare meeting.',
+        status: 'active',
+        seasonId: newSeasonId,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: sistersProgramId,
+        title: 'Sisters Circle Usrah',
+        category: 'Sisters Wing',
+        date: todayStr,
+        time: '02:00 PM - 05:00 PM',
+        location: 'Central Branch Islamic Center',
+        description: 'Empowerment and spiritual circle session for sisters on modest living, mentorship, and Islamic etiquette.',
+        status: 'upcoming',
+        seasonId: newSeasonId,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    setPrograms(freshPrograms);
+
+    return mainProgramId;
   };
 
   // Sync Attendance Handler

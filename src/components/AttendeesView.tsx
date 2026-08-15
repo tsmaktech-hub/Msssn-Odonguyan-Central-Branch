@@ -247,22 +247,22 @@ export const AttendeesView: React.FC<AttendeesViewProps> = ({
 
       {/* Individual Attendee History Modal */}
       {selectedAttendeeDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-xl">
             
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold text-lg flex items-center justify-center">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold text-base sm:text-lg flex items-center justify-center shrink-0">
                   {selectedAttendeeDetail.name.slice(0, 2).toUpperCase()}
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">{selectedAttendeeDetail.name}</h3>
-                  <p className="text-xs text-slate-500">{selectedAttendeeDetail.role} • {selectedAttendeeDetail.email}</p>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-xl font-bold text-slate-900 truncate">{selectedAttendeeDetail.name}</h3>
+                  <p className="text-[11px] sm:text-xs text-slate-500 truncate">{selectedAttendeeDetail.role} • {selectedAttendeeDetail.email || selectedAttendeeDetail.phone}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedAttendeeDetail(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-2 text-slate-400 hover:text-slate-700 rounded-lg shrink-0 cursor-pointer"
               >
                 ✕
               </button>
@@ -270,7 +270,7 @@ export const AttendeesView: React.FC<AttendeesViewProps> = ({
 
             {/* Attendance History List */}
             <div>
-              <h4 className="font-bold text-slate-900 text-sm mb-3">Program Attendance History</h4>
+              <h4 className="font-bold text-slate-900 text-xs sm:text-sm mb-2.5 sm:mb-3">Program Attendance History</h4>
               <div className="space-y-2">
                 {programs.map((prog) => {
                   const rec = attendance.find(a => a.programId === prog.id && a.attendeeId === selectedAttendeeDetail.id);
@@ -279,14 +279,14 @@ export const AttendeesView: React.FC<AttendeesViewProps> = ({
                   return (
                     <div
                       key={prog.id}
-                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs"
+                      className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between gap-2 text-xs"
                     >
-                      <div>
-                        <p className="font-bold text-slate-800">{prog.title}</p>
-                        <p className="text-[10px] text-slate-400">{prog.date} • {prog.location}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-xs sm:text-sm truncate">{prog.title}</p>
+                        <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">{prog.date} • {prog.location}</p>
                       </div>
 
-                      <span className={`px-2.5 py-1 font-extrabold uppercase rounded-full text-[10px] ${
+                      <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 font-extrabold uppercase rounded-full text-[9px] sm:text-[10px] shrink-0 ${
                         status === 'present'
                           ? 'bg-emerald-100 text-emerald-800'
                           : status === 'late'

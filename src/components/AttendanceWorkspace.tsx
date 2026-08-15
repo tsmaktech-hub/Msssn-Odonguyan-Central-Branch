@@ -59,7 +59,7 @@ interface AttendanceWorkspaceProps {
   onAddAttendee: (memberData: Omit<Attendee, 'id' | 'createdAt'>) => void;
   onEditAttendee?: (id: string, updatedData: Partial<Attendee>) => void;
   onDeleteAttendee: (id: string) => void;
-  onStartNewSeason: (newSeasonName: string) => void;
+  onStartNewSeason: (newSeasonName: string) => string | void;
   onSyncAttendance: (currentProgramId?: string) => string | void;
   onMarkAllPresent: (programId: string, genderFilter?: GenderType) => void;
   onClearAttendance: (programId: string) => void;
@@ -158,8 +158,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Sync Toast State
   const [showSyncToast, setShowSyncToast] = useState(false);
 
+  // Active programs for check-in workspace (excludes completed/synced sessions so dropdown stays clean)
+  const activePrograms = useMemo(() => {
+    const list = programs.filter(p => p.status !== 'completed');
+    return list.length > 0 ? list : programs;
+  }, [programs]);
+
   // Active program & season objects
-  const activeProgram = programs.find(p => p.id === selectedProgramId) || programs[0];
+  const activeProgram = activePrograms.find(p => p.id === selectedProgramId) || activePrograms[0] || programs[0];
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
 
   // Determine if current program is dedicated Sisters-only (e.g. Sisters Circle Usrah) and not a combined Brothers/Sisters program
@@ -333,10 +339,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       return;
     }
 
-    onStartNewSeason(newSeasonName.trim());
+    const newProgId = onStartNewSeason(newSeasonName.trim());
+    if (newProgId) {
+      setSelectedProgramId(newProgId);
+    }
     setNewSeasonName('');
     setIsSeasonModalOpen(false);
-    alert('New Season started successfully! Attendance sheet check-in records have been reset for the new season. All member names remain saved in your roster.');
+    alert('New Season started successfully! All previous synced sessions and attendance marks have been reset. Fresh active sessions are ready with all member names saved in your roster.');
   };
 
   return (
@@ -498,11 +507,11 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <span>Program / Meeting</span>
               </label>
               <select
-                value={selectedProgramId}
+                value={activeProgram?.id || selectedProgramId}
                 onChange={(e) => {
                   const progId = e.target.value;
                   setSelectedProgramId(progId);
-                  const targetProg = programs.find(p => p.id === progId);
+                  const targetProg = activePrograms.find(p => p.id === progId);
                   const isTargetSistersOnly = Boolean(
                     targetProg &&
                     (targetProg.category === 'Sisters Wing' ||
@@ -518,9 +527,9 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 }}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
               >
-                {programs.map(prog => (
+                {activePrograms.map(prog => (
                   <option key={prog.id} value={prog.id}>
-                    {prog.title} • {prog.date} {prog.status === 'completed' ? '(Synced)' : '(Active)'}
+                    {prog.title}
                   </option>
                 ))}
               </select>
@@ -1386,6 +1395,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         attendees={attendees}
         attendance={attendance}
         onUpdateAttendance={onUpdateAttendance}
+        onSelectMemberHistory={(member) => setSelectedHistoryMember(member)}
       />
 
     </div>
