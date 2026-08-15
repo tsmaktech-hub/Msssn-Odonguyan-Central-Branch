@@ -6,10 +6,9 @@ import {
   UserCheck,
   Lock,
   ArrowRight,
-  Database
+  Calendar
 } from 'lucide-react';
 import { UserAccount } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 interface LandingPortalProps {
   onSelectAttendance: () => void;
@@ -24,7 +23,6 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   onSelectFinances,
   attendanceUser,
   financeUser,
-  onOpenSupabaseModal,
 }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
@@ -61,17 +59,17 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               </div>
             </div>
 
-            {/* Supabase Connection Button */}
-            {onOpenSupabaseModal && (
-              <button
-                onClick={onOpenSupabaseModal}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800/90 hover:bg-emerald-800 text-white text-xs font-semibold border border-emerald-700/80 shadow-sm transition-all hover:scale-105"
-              >
-                <Database className="w-3.5 h-3.5 text-emerald-300" />
-                <span>{isSupabaseConfigured ? 'Supabase Connected' : 'Connect Supabase DB'}</span>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              </button>
-            )}
+            {/* Executive Administrative Session Badge */}
+            <div className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-950/70 border border-emerald-700/60 backdrop-blur-xs text-xs font-semibold text-emerald-100 shadow-sm">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                <span className="text-emerald-100 font-bold tracking-wide">2025/2026 Administrative Session</span>
+              </div>
+            </div>
 
           </div>
         </div>
