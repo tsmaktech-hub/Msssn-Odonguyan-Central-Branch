@@ -17,9 +17,9 @@ import {
 } from '../data/sampleData';
 
 const KEYS = {
-  PROGRAMS: 'mssn_programs_v3',
+  PROGRAMS: 'mssn_programs_v4',
   ATTENDEES: 'mssn_attendees_v3',
-  ATTENDANCE: 'mssn_attendance_v4',
+  ATTENDANCE: 'mssn_attendance_v5',
   TRANSACTIONS: 'mssn_transactions_v3',
   SEASONS: 'mssn_seasons_v3',
   ACTIVE_SEASON_ID: 'mssn_active_season_id_v3',
@@ -216,32 +216,63 @@ export const exportTransactionsToCSV = (transactions: FinancialTransaction[], pr
 };
 
 export const exportAttendanceToCSV = (attendance: AttendanceRecord[], attendees: Attendee[], programs: Program[]) => {
-  const getProgName = (id: string) => programs.find(p => p.id === id)?.title || 'Usrah Session';
+  const getProg = (id: string) => programs.find(p => p.id === id);
   const getAttendee = (id: string) => attendees.find(a => a.id === id);
 
-  const headers = ['Record ID', 'Program', 'Member Name', 'Gender', 'Phone', 'Category', 'Reg No', 'Status', 'Check-In Time', 'Notes'];
-  const rows = attendance.map(rec => {
+  // Filter records with valid attendee
+  const validRecords = attendance.map(rec => {
+    const prog = getProg(rec.programId);
     const att = getAttendee(rec.attendeeId);
-    return [
-      rec.id,
-      `"${getProgName(rec.programId).replace(/"/g, '""')}"`,
-      `"${(att?.name || 'Unknown Member').replace(/"/g, '""')}"`,
-      att?.gender || '',
-      att?.phone || '',
-      att?.category || '',
-      att?.regNo || '',
-      rec.status.toUpperCase(),
-      rec.checkInTime || '',
-      `"${(rec.notes || '').replace(/"/g, '""')}"`
-    ];
+    const progTitle = prog?.title || 'Weekly Usrah (Brothers/Sisters)';
+    const progDate = prog?.date || new Date(rec.updatedAt).toISOString().slice(0, 10);
+    const isSistersCircle = progTitle.toLowerCase().includes('sisters circle') || progTitle.toLowerCase().includes('sister circle') || prog?.category === 'Sisters Wing';
+    
+    return {
+      record: rec,
+      attendeeName: att?.name || 'Unknown Member',
+      phoneNumber: att?.phone || '-',
+      programTitle: progTitle,
+      status: rec.status === 'present' ? 'Present' : rec.status === 'late' ? 'Present (Late)' : 'Absent',
+      date: progDate,
+      isSistersCircle
+    };
   });
+
+  // Separate General Usrah programs and Sisters Circle Usrah
+  const generalUsrahList = validRecords.filter(r => !r.isSistersCircle);
+  const sistersCircleList = validRecords.filter(r => r.isSistersCircle);
+
+  // Sort General Usrah: Group by Date (descending), then by Program Name, then by Attendee Name
+  generalUsrahList.sort((a, b) => {
+    if (b.date !== a.date) return b.date.localeCompare(a.date);
+    if (a.programTitle !== b.programTitle) return a.programTitle.localeCompare(b.programTitle);
+    return a.attendeeName.localeCompare(b.attendeeName);
+  });
+
+  // Sort Sisters Circle Usrah separately: Group by Date (descending), then by Attendee Name
+  sistersCircleList.sort((a, b) => {
+    if (b.date !== a.date) return b.date.localeCompare(a.date);
+    return a.attendeeName.localeCompare(b.attendeeName);
+  });
+
+  // Combine: General Usrah arranged by date first, then Sisters Circle Usrah arranged separately
+  const combinedList = [...generalUsrahList, ...sistersCircleList];
+
+  const headers = ['Names', 'Phone Number', 'Programs', 'Status', 'Date'];
+  const rows = combinedList.map(item => [
+    `"${item.attendeeName.replace(/"/g, '""')}"`,
+    `"${item.phoneNumber.replace(/"/g, '""')}"`,
+    `"${item.programTitle.replace(/"/g, '""')}"`,
+    `"${item.status}"`,
+    `"${item.date}"`
+  ]);
 
   const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `MSSN_Odonguyan_Attendance_Sheet_${new Date().toISOString().slice(0,10)}.csv`);
+  link.setAttribute('download', `MSSN_Odonguyan_Attendance_${new Date().toISOString().slice(0,10)}.csv`);
   document.body.appendChild(link);
   link.click();
   link.remove();

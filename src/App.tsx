@@ -243,6 +243,10 @@ export default function App() {
     setAttendance(prev => prev.filter(a => a.programId !== programId));
   };
 
+  const handleUpdateProgramDate = (programId: string, newDate: string) => {
+    setPrograms(prev => prev.map(p => p.id === programId ? { ...p, date: newDate } : p));
+  };
+
   // Finance Actions
   const handleAddTransaction = (txData: Omit<FinancialTransaction, 'id' | 'createdAt'>) => {
     const newTx: FinancialTransaction = {
@@ -311,6 +315,7 @@ export default function App() {
           onSyncAttendance={handleSyncAttendance}
           onMarkAllPresent={handleMarkAllPresent}
           onClearAttendance={handleClearAttendance}
+          onUpdateProgramDate={handleUpdateProgramDate}
         />
       )}
 

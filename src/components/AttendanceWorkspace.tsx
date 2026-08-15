@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
 import { MemberAttendanceHistoryModal } from './MemberAttendanceHistoryModal';
+import { DateAttendanceSearchModal } from './DateAttendanceSearchModal';
 
 interface AttendanceWorkspaceProps {
   user: UserAccount;
@@ -62,6 +63,7 @@ interface AttendanceWorkspaceProps {
   onSyncAttendance: () => void;
   onMarkAllPresent: (programId: string, genderFilter?: GenderType) => void;
   onClearAttendance: (programId: string) => void;
+  onUpdateProgramDate?: (programId: string, newDate: string) => void;
 }
 
 export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
@@ -82,11 +84,15 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   onSyncAttendance,
   onMarkAllPresent,
   onClearAttendance,
+  onUpdateProgramDate,
 }) => {
   const [selectedGenderTab, setSelectedGenderTab] = useState<'brothers' | 'sisters' | 'all'>('brothers');
   const [selectedProgramId, setSelectedProgramId] = useState<string>(programs[0]?.id || 'prog-1');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  // Date Search Modal state
+  const [isDateSearchOpen, setIsDateSearchOpen] = useState(false);
 
   // New Member Modal state
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
@@ -152,55 +158,50 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Sync Toast State
   const [showSyncToast, setShowSyncToast] = useState(false);
 
-  // 5 Recent Sessions for 5-button history indicators (sorted descending by date)
-  const recentFivePrograms = useMemo(() => {
-    return [...programs]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+  // 5 Recent Sessions for 5-indicator dots (sorted descending by date)
+  const syncedSessions = useMemo(() => {
+    return [...programs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [programs]);
 
-  // Compute attendance stats and 5-session history for a given member
+  // Compute attendance stats and 5-session dot indicators for a given member
   const getMemberAttendanceStats = (memberId: string) => {
-    const totalAttended = attendance.filter(
-      a => a.attendeeId === memberId && (a.status === 'present' || a.status === 'late')
-    ).length;
+    const memberRecords = attendance.filter(a => a.attendeeId === memberId && Boolean(a.status));
+    const totalAttended = memberRecords.filter(a => a.status === 'present' || a.status === 'late').length;
 
-    const fiveSessionHistory = recentFivePrograms.map((prog, idx) => {
+    // 5 Dots shifting sequence:
+    // Slot 0 is Day 1 (if 1 session exists), or Day 6 (if 6 sessions exist), or Day 7 (if 7 sessions exist).
+    const fiveDots = [0, 1, 2, 3, 4].map(idx => {
+      const prog = syncedSessions[idx];
+      if (!prog) {
+        return {
+          dayIndex: idx + 1,
+          isRecorded: false,
+          isPresent: false,
+          isAbsent: false,
+          tooltip: `Session ${idx + 1}: Not recorded yet`
+        };
+      }
+
       const rec = attendance.find(a => a.programId === prog.id && a.attendeeId === memberId);
       const isRecorded = Boolean(rec && rec.status);
-      const isPresent = rec?.status === 'present' || rec?.status === 'late';
-      const isAbsent = rec?.status === 'absent';
-      
-      const dateObj = new Date(prog.date);
-      const isValidDate = !isNaN(dateObj.getTime());
-      const dayName = isValidDate 
-        ? dateObj.toLocaleDateString('en-US', { weekday: 'short' })
-        : 'Sun';
-      const fullDayName = isValidDate 
-        ? dateObj.toLocaleDateString('en-US', { weekday: 'long' })
-        : 'Sunday';
-      const formattedDate = isValidDate
-        ? dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-        : prog.date;
+      const isPresent = isRecorded && (rec?.status === 'present' || rec?.status === 'late');
+      const isAbsent = isRecorded && rec?.status === 'absent';
 
       return {
-        sessionNumber: idx + 1,
+        dayIndex: idx + 1,
         program: prog,
-        record: rec,
         isRecorded,
         isPresent,
         isAbsent,
-        dayName,
-        fullDayName,
-        formattedDate,
-        checkInTime: rec?.checkInTime,
-        status: rec?.status,
+        tooltip: isRecorded 
+          ? `${prog.title} (${prog.date}): ${isPresent ? 'Present (Came)' : 'Absent (Did not come)'}`
+          : `Session ${idx + 1} (${prog.date}): Not recorded yet`
       };
     });
 
     return {
       totalAttended,
-      fiveSessionHistory,
+      fiveDots,
     };
   };
 
@@ -464,45 +465,93 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
 
         {/* Program / Event Selector Card */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm border border-slate-200 space-y-2 sm:space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-            <div>
-              <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm border border-slate-200 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            
+            {/* Program Dropdown (Clean, without date in option title) */}
+            <div className="flex-1 space-y-1">
+              <label className="text-[11px] sm:text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Program / Meeting</span>
-              </h3>
-              <p className="hidden sm:block text-xs text-slate-500 mt-0.5">
-                Taking attendance for: <strong className="text-emerald-700 font-bold">{activeProgram?.title}</strong> ({activeProgram?.date})
-              </p>
+              </label>
+              <select
+                value={selectedProgramId}
+                onChange={(e) => {
+                  const progId = e.target.value;
+                  setSelectedProgramId(progId);
+                  const targetProg = programs.find(p => p.id === progId);
+                  const isTargetSistersOnly = Boolean(
+                    targetProg &&
+                    (targetProg.category === 'Sisters Wing' ||
+                      targetProg.title.toLowerCase().includes('sisters circle') ||
+                      targetProg.title.toLowerCase().includes('sister circle')) &&
+                    !targetProg.title.toLowerCase().includes('brother')
+                  );
+                  if (isTargetSistersOnly) {
+                    setSelectedGenderTab('sisters');
+                  } else {
+                    setSelectedGenderTab('all');
+                  }
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                {programs.map(prog => (
+                  <option key={prog.id} value={prog.id}>
+                    {prog.title}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <select
-              value={selectedProgramId}
-              onChange={(e) => {
-                const progId = e.target.value;
-                setSelectedProgramId(progId);
-                const targetProg = programs.find(p => p.id === progId);
-                const isTargetSistersOnly = Boolean(
-                  targetProg &&
-                  (targetProg.category === 'Sisters Wing' ||
-                    targetProg.title.toLowerCase().includes('sisters circle') ||
-                    targetProg.title.toLowerCase().includes('sister circle')) &&
-                  !targetProg.title.toLowerCase().includes('brother')
-                );
-                if (isTargetSistersOnly) {
-                  setSelectedGenderTab('sisters');
-                } else {
-                  setSelectedGenderTab('all');
-                }
-              }}
-              className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-semibold text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
-            >
-              {programs.map(prog => (
-                <option key={prog.id} value={prog.id}>
-                  {prog.title} ({prog.date})
-                </option>
-              ))}
-            </select>
+            {/* Attendance Date Setting (Date Picker for this attendance session) */}
+            <div className="space-y-1">
+              <label className="text-[11px] sm:text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Attendance Sheet Date</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={activeProgram?.date || ''}
+                  onChange={(e) => {
+                    if (activeProgram && onUpdateProgramDate) {
+                      onUpdateProgramDate(activeProgram.id, e.target.value);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    if (activeProgram && onUpdateProgramDate) {
+                      onUpdateProgramDate(activeProgram.id, todayStr);
+                    }
+                  }}
+                  className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                  title="Set to Today's date"
+                >
+                  Today
+                </button>
+              </div>
+            </div>
+
+            {/* Search Attendance by Date Button */}
+            <div className="space-y-1 self-end sm:self-auto">
+              <label className="hidden md:block text-[11px] sm:text-xs font-extrabold text-slate-700 uppercase tracking-wider opacity-0">
+                Search Date
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsDateSearchOpen(true)}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                title="Search and check present/absent members for any particular date"
+              >
+                <Search className="w-4 h-4 text-emerald-700" />
+                <span>Search by Date</span>
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -720,32 +769,22 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                         </button>
                       </div>
 
-                      {/* 5 Indicator Buttons (Unclicked by default when unrecorded) */}
+                      {/* 5 Indicator Dots (Clean, Non-clickable, No numbers inside) */}
                       <div className="flex items-center justify-between gap-1.5 pt-0.5">
                         <span className="text-[10px] font-semibold text-slate-500">Last 5 Sessions:</span>
-                        <div className="flex items-center gap-1.5 justify-end">
-                          {memberStats.fiveSessionHistory.map((sess) => (
-                            <button
-                              key={sess.program.id}
-                              type="button"
-                              onClick={() => setSelectedHistoryMember(member)}
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all transform active:scale-90 hover:scale-110 cursor-pointer ${
-                                !sess.isRecorded
-                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs'
-                                  : sess.isPresent
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 shadow-xs'
-                                    : 'bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-500/30 shadow-xs'
+                        <div className="flex items-center gap-2 justify-end">
+                          {memberStats.fiveDots.map((dot, dIdx) => (
+                            <span
+                              key={dIdx}
+                              className={`w-3.5 h-3.5 rounded-full inline-block transition-all ${
+                                !dot.isRecorded
+                                  ? 'bg-slate-200 border border-slate-300'
+                                  : dot.isPresent
+                                    ? 'bg-emerald-500 ring-2 ring-emerald-300/50 shadow-2xs'
+                                    : 'bg-rose-500 ring-2 ring-rose-300/50 shadow-2xs'
                               }`}
-                              title={`Session ${sess.sessionNumber}: ${sess.fullDayName}, ${sess.formattedDate} - ${
-                                !sess.isRecorded 
-                                  ? 'Not recorded yet (Unclicked). Tap to view / take attendance.' 
-                                  : sess.isPresent 
-                                    ? 'Attended (Present). Tap to view dates & days.' 
-                                    : 'Did not attend (Absent). Tap to view dates & days.'
-                              }`}
-                            >
-                              {sess.sessionNumber}
-                            </button>
+                              title={dot.tooltip}
+                            />
                           ))}
                         </div>
                       </div>
@@ -870,31 +909,23 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                               </button>
                             </div>
 
-                            {/* 5 Indicator Buttons (Unclicked by default when unrecorded) */}
-                            <div className="flex items-center gap-1.5">
-                              {memberStats.fiveSessionHistory.map((sess) => (
-                                <button
-                                  key={sess.program.id}
-                                  type="button"
-                                  onClick={() => setSelectedHistoryMember(member)}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all transform active:scale-90 hover:scale-110 cursor-pointer ${
-                                    !sess.isRecorded
-                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs'
-                                      : sess.isPresent
-                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/30 shadow-xs'
-                                        : 'bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-400/30 shadow-xs'
-                                  }`}
-                                  title={`Session ${sess.sessionNumber}: ${sess.fullDayName}, ${sess.formattedDate} - ${
-                                    !sess.isRecorded 
-                                      ? 'Not recorded yet (Unclicked). Click to view / take attendance.' 
-                                      : sess.isPresent 
-                                        ? 'Attended (Present). Click to view details.' 
-                                        : 'Did not attend (Absent). Click to view details.'
-                                  }`}
-                                >
-                                  {sess.sessionNumber}
-                                </button>
-                              ))}
+                            {/* 5 Indicator Dots (Clean, Non-clickable, No numbers inside) */}
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5">
+                                {memberStats.fiveDots.map((dot, dIdx) => (
+                                  <span
+                                    key={dIdx}
+                                    className={`w-3.5 h-3.5 rounded-full inline-block transition-all ${
+                                      !dot.isRecorded
+                                        ? 'bg-slate-200 border border-slate-300'
+                                        : dot.isPresent
+                                          ? 'bg-emerald-500 ring-2 ring-emerald-300/50 shadow-2xs'
+                                          : 'bg-rose-500 ring-2 ring-rose-300/50 shadow-2xs'
+                                    }`}
+                                    title={dot.tooltip}
+                                  />
+                                ))}
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => setSelectedHistoryMember(member)}
@@ -1314,6 +1345,16 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         onClose={() => setSelectedHistoryMember(null)}
         member={selectedHistoryMember}
         programs={programs}
+        attendance={attendance}
+        onUpdateAttendance={onUpdateAttendance}
+      />
+
+      {/* MODAL 4: SEARCH ATTENDANCE BY DATE */}
+      <DateAttendanceSearchModal
+        isOpen={isDateSearchOpen}
+        onClose={() => setIsDateSearchOpen(false)}
+        programs={programs}
+        attendees={attendees}
         attendance={attendance}
         onUpdateAttendance={onUpdateAttendance}
       />

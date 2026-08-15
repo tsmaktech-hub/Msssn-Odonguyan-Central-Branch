@@ -34,7 +34,7 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
   attendance,
   onUpdateAttendance,
 }) => {
-  const [activeFilter, setActiveFilter] = useState<'all' | 'attended' | 'missed' | 'unrecorded'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'attended' | 'missed'>('all');
 
   if (!isOpen || !member) return null;
 
@@ -43,56 +43,55 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Compute history for each session
-  const historyList = sortedPrograms.map((prog, index) => {
-    const record = attendance.find(a => a.programId === prog.id && a.attendeeId === member.id);
-    const isRecorded = Boolean(record && record.status);
-    const isPresent = isRecorded && (record?.status === 'present' || record?.status === 'late');
-    const isAbsent = isRecorded && record?.status === 'absent';
-    
-    // Parse Date and Day of the Week
-    const dateObj = new Date(prog.date);
-    const isValidDate = !isNaN(dateObj.getTime());
-    
-    const dayOfWeek = isValidDate 
-      ? dateObj.toLocaleDateString('en-US', { weekday: 'long' })
-      : 'Sunday';
+  // Compute history ONLY for sessions that have been synced / recorded
+  const historyList = sortedPrograms
+    .map((prog, index) => {
+      const record = attendance.find(a => a.programId === prog.id && a.attendeeId === member.id);
+      const isRecorded = Boolean(record && record.status);
+      const isPresent = isRecorded && (record?.status === 'present' || record?.status === 'late');
+      const isAbsent = isRecorded && record?.status === 'absent';
       
-    const formattedDate = isValidDate
-      ? dateObj.toLocaleDateString('en-US', { 
-          day: 'numeric', 
-          month: 'long', 
-          year: 'numeric' 
-        })
-      : prog.date;
+      // Parse Date and Day of the Week
+      const dateObj = new Date(prog.date);
+      const isValidDate = !isNaN(dateObj.getTime());
+      
+      const dayOfWeek = isValidDate 
+        ? dateObj.toLocaleDateString('en-US', { weekday: 'long' })
+        : 'Sunday';
+        
+      const formattedDate = isValidDate
+        ? dateObj.toLocaleDateString('en-US', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })
+        : prog.date;
 
-    return {
-      sessionNumber: index + 1,
-      program: prog,
-      record,
-      isRecorded,
-      isPresent,
-      isAbsent,
-      dayOfWeek,
-      formattedDate,
-      checkInTime: record?.checkInTime,
-      status: record?.status,
-      notes: record?.notes,
-    };
-  });
+      return {
+        sessionNumber: index + 1,
+        program: prog,
+        record,
+        isRecorded,
+        isPresent,
+        isAbsent,
+        dayOfWeek,
+        formattedDate,
+        checkInTime: record?.checkInTime,
+        status: record?.status,
+        notes: record?.notes,
+      };
+    })
+    .filter(item => item.isRecorded); // ONLY show synced / recorded sessions
 
-  const totalSessions = historyList.length;
   const attendedCount = historyList.filter(item => item.isPresent).length;
   const missedCount = historyList.filter(item => item.isAbsent).length;
-  const unrecordedCount = historyList.filter(item => !item.isRecorded).length;
-  const recordedTotal = attendedCount + missedCount;
-  const attendanceRate = recordedTotal > 0 ? Math.round((attendedCount / recordedTotal) * 100) : 0;
+  const totalSessions = historyList.length;
+  const attendanceRate = totalSessions > 0 ? Math.round((attendedCount / totalSessions) * 100) : 0;
 
   // Filter items
   const filteredHistory = historyList.filter(item => {
     if (activeFilter === 'attended') return item.isPresent;
     if (activeFilter === 'missed') return item.isAbsent;
-    if (activeFilter === 'unrecorded') return !item.isRecorded;
     return true;
   });
 
@@ -166,7 +165,6 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
             <p className="text-lg sm:text-2xl font-black text-emerald-700 mt-0.5 flex items-center justify-center gap-1">
               <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 inline" />
               <span>{attendedCount}</span>
-              <span className="text-xs sm:text-sm font-semibold text-slate-400">/ {totalSessions}</span>
             </p>
             <span className="text-[10px] text-emerald-600 font-bold">Attended</span>
           </div>
@@ -176,7 +174,6 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
             <p className="text-lg sm:text-2xl font-black text-rose-600 mt-0.5 flex items-center justify-center gap-1">
               <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 inline" />
               <span>{missedCount}</span>
-              <span className="text-xs sm:text-sm font-semibold text-slate-400">/ {totalSessions}</span>
             </p>
             <span className="text-[10px] text-rose-600 font-bold">Absent</span>
           </div>
@@ -188,7 +185,7 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
               <span>{attendanceRate}%</span>
             </p>
             <span className="text-[10px] text-slate-500 font-medium">
-              {recordedTotal === 0 ? 'No records yet' : `${recordedTotal} recorded`}
+              {totalSessions === 0 ? 'No records yet' : `${totalSessions} recorded`}
             </span>
           </div>
         </div>
@@ -228,23 +225,10 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
               <span className="w-2 h-2 rounded-full bg-rose-400"></span>
               Days Missed ({missedCount})
             </button>
-            {unrecordedCount > 0 && (
-              <button
-                onClick={() => setActiveFilter('unrecorded')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeFilter === 'unrecorded'
-                    ? 'bg-slate-700 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                Unrecorded ({unrecordedCount})
-              </button>
-            )}
           </div>
 
           <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-            Tap button to record status
+            Synced attendance sessions
           </span>
         </div>
 
@@ -253,36 +237,34 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
           {filteredHistory.length === 0 ? (
             <div className="text-center py-10 text-slate-500 space-y-2">
               <Calendar className="w-10 h-10 mx-auto text-slate-300" />
-              <p className="text-sm font-bold text-slate-700">No session records match this filter</p>
-              <p className="text-xs text-slate-400">Try switching to the "All Dates & Days" tab above.</p>
+              <p className="text-sm font-bold text-slate-700">No synced records found for this member</p>
+              <p className="text-xs text-slate-400">
+                Mark attendance on the attendance sheet and click <strong>Sync Attendance Sheet</strong> to record attendance dates.
+              </p>
             </div>
           ) : (
-            filteredHistory.map((item) => (
+            filteredHistory.map((item, idx) => (
               <div 
                 key={item.program.id}
                 className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                  !item.isRecorded
-                    ? 'bg-slate-50/80 border-slate-200 hover:bg-slate-100/60'
-                    : item.isPresent
-                      ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50'
-                      : 'bg-rose-50/40 border-rose-200/80 hover:bg-rose-50'
+                  item.isPresent
+                    ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50'
+                    : 'bg-rose-50/40 border-rose-200/80 hover:bg-rose-50'
                 }`}
               >
                 {/* Date, Day and Program Information */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* Session Number Badge */}
+                    {/* Session Counter Badge */}
                     <span className="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-black flex items-center justify-center">
-                      {item.sessionNumber}
+                      {idx + 1}
                     </span>
 
                     {/* Day of Week Badge */}
                     <span className={`px-2 py-0.5 rounded-lg text-xs font-extrabold flex items-center gap-1 ${
-                      !item.isRecorded
-                        ? 'bg-slate-200 text-slate-700 border border-slate-300'
-                        : item.isPresent
-                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                          : 'bg-rose-100 text-rose-900 border border-rose-200'
+                      item.isPresent
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                        : 'bg-rose-100 text-rose-900 border border-rose-200'
                     }`}>
                       <CalendarDays className="w-3.5 h-3.5" />
                       {item.dayOfWeek}
@@ -316,69 +298,40 @@ export const MemberAttendanceHistoryModal: React.FC<MemberAttendanceHistoryModal
 
                 {/* Status Indicator & Quick Action Buttons */}
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  {/* Status Banner */}
-                  {!item.isRecorded ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">
-                        Unrecorded
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateAttendance(item.program.id, member.id, 'present')}
-                        className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                        title="Mark member as Present"
-                      >
+                  <div className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs ${
+                    item.isPresent
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-rose-600 text-white'
+                  }`}>
+                    {item.isPresent ? (
+                      <>
                         <Check className="w-3.5 h-3.5" />
-                        <span>Came</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateAttendance(item.program.id, member.id, 'absent')}
-                        className="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                        title="Mark member as Absent"
-                      >
+                        <span>Came (Present)</span>
+                      </>
+                    ) : (
+                      <>
                         <X className="w-3.5 h-3.5" />
-                        <span>Absent</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs ${
-                        item.isPresent
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-rose-600 text-white'
-                      }`}>
-                        {item.isPresent ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Came (Present)</span>
-                          </>
-                        ) : (
-                          <>
-                            <X className="w-3.5 h-3.5" />
-                            <span>Did Not Come</span>
-                          </>
-                        )}
-                      </div>
+                        <span>Did Not Come</span>
+                      </>
+                    )}
+                  </div>
 
-                      {/* Quick Switch Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newStatus: AttendanceStatus = item.isPresent ? 'absent' : 'present';
-                          onUpdateAttendance(item.program.id, member.id, newStatus);
-                        }}
-                        className={`p-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
-                          item.isPresent
-                            ? 'border-rose-300 text-rose-700 hover:bg-rose-100'
-                            : 'border-emerald-300 text-emerald-700 hover:bg-emerald-100'
-                        }`}
-                        title={item.isPresent ? 'Change to Absent' : 'Change to Present'}
-                      >
-                        {item.isPresent ? 'Set Absent' : 'Set Came'}
-                      </button>
-                    </>
-                  )}
+                  {/* Quick Switch Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newStatus: AttendanceStatus = item.isPresent ? 'absent' : 'present';
+                      onUpdateAttendance(item.program.id, member.id, newStatus);
+                    }}
+                    className={`p-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
+                      item.isPresent
+                        ? 'border-rose-300 text-rose-700 hover:bg-rose-100'
+                        : 'border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                    title={item.isPresent ? 'Change to Absent' : 'Change to Present'}
+                  >
+                    {item.isPresent ? 'Set Absent' : 'Set Came'}
+                  </button>
                 </div>
               </div>
             ))
