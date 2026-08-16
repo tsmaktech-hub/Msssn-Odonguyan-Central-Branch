@@ -74,12 +74,12 @@ export const DateAttendanceSearchModal: React.FC<DateAttendanceSearchModalProps>
     return (prog?.date === selectedDate || a.programId === activeProgram?.id) && Boolean(a.status);
   });
 
-  // Calculate stats for all attendees on this date (members not marked present default to absent)
+  // Calculate stats for all attendees on this date
   const memberListWithStatus = attendees.map(att => {
     const rec = dateAttendance.find(a => a.attendeeId === att.id);
-    const isPresent = Boolean(rec && (rec.status === 'present' || rec.status === 'late'));
-    const isAbsent = !isPresent;
-    const isRecorded = true;
+    const isRecorded = Boolean(rec && rec.status);
+    const isPresent = isRecorded && (rec?.status === 'present' || rec?.status === 'late');
+    const isAbsent = isRecorded && rec?.status === 'absent';
 
     return {
       member: att,
@@ -87,8 +87,8 @@ export const DateAttendanceSearchModal: React.FC<DateAttendanceSearchModalProps>
       isRecorded,
       isPresent,
       isAbsent,
-      status: isPresent ? (rec?.status || 'present') : 'absent',
-      checkInTime: isPresent ? rec?.checkInTime : undefined,
+      status: rec?.status,
+      checkInTime: rec?.checkInTime,
     };
   });
 

@@ -802,10 +802,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             ) : (
               filteredMembers.map((member) => {
                 const record = getRecordForMember(member.id);
-                // If not marked present/late, default to absent with red color
-                const currentStatus: AttendanceStatus = (record && !record.isSynced && record.status) 
-                  ? record.status 
-                  : 'absent';
+                const currentStatus = record && !record.isSynced ? record.status : undefined;
                 const memberStats = getMemberAttendanceStats(member.id);
 
                 return (
@@ -960,10 +957,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 ) : (
                   filteredMembers.map((member) => {
                     const record = getRecordForMember(member.id);
-                    // If not marked present/late, default to absent with red color
-                    const currentStatus: AttendanceStatus = (record && !record.isSynced && record.status) 
-                      ? record.status 
-                      : 'absent';
+                    const currentStatus = record && !record.isSynced ? record.status : undefined;
                     const memberStats = getMemberAttendanceStats(member.id);
 
                     return (

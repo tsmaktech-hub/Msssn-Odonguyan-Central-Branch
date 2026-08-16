@@ -279,9 +279,12 @@ export default function App() {
   const handleSyncAttendance = (currentProgramId?: string): string => {
     const targetProg = programs.find(p => p.id === currentProgramId) || programs[0];
     const targetProgId = targetProg?.id;
+    const nowIso = new Date().toISOString();
 
-    // 1. When syncing attendance: ensure every member for this program has a record (unchosen defaults to absent) and mark as synced
-    const targetIsSistersOnly = Boolean(
+    if (!targetProgId) return '';
+
+    // Determine eligible members for this program stream (Sisters-only vs General Usrah)
+    const isSistersProg = Boolean(
       targetProg &&
       (targetProg.category === 'Sisters Wing' ||
         targetProg.title.toLowerCase().includes('sisters circle') ||
@@ -289,40 +292,41 @@ export default function App() {
       !targetProg.title.toLowerCase().includes('brother')
     );
 
-    const eligibleAttendees = attendees.filter(a => !targetIsSistersOnly || a.gender === 'Sister');
-    const nowIso = new Date().toISOString();
+    const eligibleMembers = isSistersProg
+      ? attendees.filter(a => a.gender === 'Sister')
+      : attendees;
 
+    // 1. When syncing attendance:
+    // Mark chosen check-ins as synced. For anyone not chosen (neither present nor absent), record them as 'absent'
     setAttendance(prev => {
-      const recordsForTarget = prev.filter(r => r.programId === targetProgId);
-      const otherRecords = prev.filter(r => r.programId !== targetProgId);
+      const remainingRecords = prev.filter(rec => rec.programId !== targetProgId);
+      const existingProgRecords = prev.filter(rec => rec.programId === targetProgId);
 
-      const existingMemberIds = new Set(recordsForTarget.map(r => r.attendeeId));
-
-      const updatedExisting = recordsForTarget.map(rec => ({
-        ...rec,
-        status: rec.status || 'absent',
-        isSynced: true,
-        syncedAt: rec.syncedAt || nowIso,
-      }));
-
-      // Create absent records for eligible attendees who were not chosen
-      const newlyAddedAbsent: AttendanceRecord[] = [];
-      eligibleAttendees.forEach(att => {
-        if (!existingMemberIds.has(att.id)) {
-          newlyAddedAbsent.push({
-            id: `rec-${Date.now()}-${att.id}`,
-            programId: targetProgId!,
-            seasonId: activeSeasonId,
-            attendeeId: att.id,
-            status: 'absent',
-            updatedAt: nowIso,
+      const finalizedRecords: AttendanceRecord[] = eligibleMembers.map(member => {
+        const found = existingProgRecords.find(r => r.attendeeId === member.id);
+        if (found && (found.status === 'present' || found.status === 'late' || found.status === 'absent')) {
+          return {
+            ...found,
             isSynced: true,
-            syncedAt: nowIso,
-          });
+            syncedAt: found.syncedAt || nowIso,
+            updatedAt: nowIso,
+          };
         }
+
+        // Person was not marked present or absent: auto-record as absent for this synced day
+        return {
+          id: found ? found.id : `rec-${Date.now()}-${member.id}`,
+          programId: targetProgId,
+          seasonId: targetProg.seasonId || activeSeasonId,
+          attendeeId: member.id,
+          status: 'absent' as AttendanceStatus,
+          isSynced: true,
+          syncedAt: nowIso,
+          updatedAt: nowIso,
+        };
       });
 
-      return [...otherRecords, ...updatedExisting, ...newlyAddedAbsent];
+      return [...remainingRecords, ...finalizedRecords];
     });
 
     // 2. Mark the current synced program as completed
@@ -359,8 +363,8 @@ export default function App() {
 
     // 5. Log the sync event
     const log: SyncLog = {
-      timestamp: new Date().toISOString(),
-      recordsCount: attendance.filter(a => (!targetProgId || a.programId === targetProgId) && Boolean(a.status)).length,
+      timestamp: nowIso,
+      recordsCount: eligibleMembers.length,
       syncedBy: attendanceUser?.name || 'Attendance Officer',
     };
     setLastSync(log);
