@@ -189,10 +189,25 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const [showSyncToast, setShowSyncToast] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Active programs for check-in workspace (excludes completed/synced sessions so dropdown stays clean)
+  // Active programs for check-in workspace (excludes completed/synced sessions and duplicate titles so dropdown stays clean)
   const activePrograms = useMemo(() => {
     const list = programs.filter(p => p.status !== 'completed');
-    return list.length > 0 ? list : programs;
+    const sourceList = list.length > 0 ? list : programs;
+
+    const seenTitles = new Set<string>();
+    const uniqueList: Program[] = [];
+
+    // Prioritize newest matching active session
+    for (let i = sourceList.length - 1; i >= 0; i--) {
+      const p = sourceList[i];
+      const normTitle = p.title.trim().toLowerCase();
+      if (!seenTitles.has(normTitle)) {
+        seenTitles.add(normTitle);
+        uniqueList.unshift(p);
+      }
+    }
+
+    return uniqueList.length > 0 ? uniqueList : sourceList;
   }, [programs]);
 
   // Active program & season objects

@@ -61,10 +61,30 @@ export const loadStoredData = () => {
     const activeSeasonId = storedActiveSeason || (seasons[0]?.id || 'season-1');
 
     const rawPrograms = storedPrograms ? JSON.parse(storedPrograms) as Program[] : initialPrograms;
-    let programs: Program[] = rawPrograms
+    let filteredPrograms: Program[] = rawPrograms
       .filter(p => !p.title.toLowerCase().includes('jihad') && p.category !== 'Jihad Week');
 
-    if (programs.length === 0 || programs.length < initialPrograms.length) {
+    // Deduplicate active programs with identical titles (e.g. multiple "Weekly Usrah (Brothers/Sisters)")
+    const seenActiveTitles = new Set<string>();
+    const deduplicatedPrograms: Program[] = [];
+
+    // Prioritize newest active sessions and all completed history sessions
+    for (let i = filteredPrograms.length - 1; i >= 0; i--) {
+      const prog = filteredPrograms[i];
+      const normTitle = prog.title.trim().toLowerCase();
+      if (prog.status === 'completed') {
+        deduplicatedPrograms.unshift(prog);
+      } else {
+        if (!seenActiveTitles.has(normTitle)) {
+          seenActiveTitles.add(normTitle);
+          deduplicatedPrograms.unshift(prog);
+        }
+      }
+    }
+
+    let programs: Program[] = deduplicatedPrograms;
+
+    if (programs.length === 0) {
       programs = [...initialPrograms];
     }
 
