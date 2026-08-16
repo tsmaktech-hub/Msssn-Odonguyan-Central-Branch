@@ -5,7 +5,8 @@ import {
   FinancialTransaction, 
   Season, 
   UserAccount,
-  SyncLog
+  SyncLog,
+  MainPortalView
 } from '../types';
 import { 
   initialPrograms, 
@@ -28,7 +29,8 @@ const KEYS = {
   FINANCE_AUTH: 'mssn_auth_accountant',
   ACCOUNTANT_PIN: 'mssn_accountant_pin_v3',
   SHEET_RESET_PASSWORD: 'mssn_sheet_reset_password_v1',
-  LAST_SYNC: 'mssn_last_sync_log_v3'
+  LAST_SYNC: 'mssn_last_sync_log_v3',
+  PORTAL_VIEW: 'mssn_portal_view_v3',
 };
 
 export const formatNaira = (amount: number): string => {
@@ -53,6 +55,7 @@ export const loadStoredData = () => {
     const storedPin = localStorage.getItem(KEYS.ACCOUNTANT_PIN);
     const storedResetPass = localStorage.getItem(KEYS.SHEET_RESET_PASSWORD);
     const storedSync = localStorage.getItem(KEYS.LAST_SYNC);
+    const storedPortalView = (localStorage.getItem(KEYS.PORTAL_VIEW) as MainPortalView) || 'landing';
 
     const seasons: Season[] = storedSeasons ? JSON.parse(storedSeasons) : initialSeasons;
     const activeSeasonId = storedActiveSeason || (seasons[0]?.id || 'season-1');
@@ -98,6 +101,7 @@ export const loadStoredData = () => {
       accountantPin: storedPin || '1234',
       sheetResetPassword: storedResetPass || '1234',
       lastSync: storedSync ? JSON.parse(storedSync) as SyncLog : null,
+      portalView: storedPortalView,
     };
   } catch (e) {
     console.error('Failed to load local storage data', e);
@@ -114,6 +118,7 @@ export const loadStoredData = () => {
       accountantPin: '1234',
       sheetResetPassword: '1234',
       lastSync: null,
+      portalView: 'landing' as MainPortalView,
     };
   }
 };
@@ -131,6 +136,7 @@ export const saveStoredData = (data: {
   accountantPin?: string;
   sheetResetPassword?: string;
   lastSync?: SyncLog | null;
+  portalView?: MainPortalView;
 }) => {
   try {
     if (data.programs) localStorage.setItem(KEYS.PROGRAMS, JSON.stringify(data.programs));
@@ -152,6 +158,7 @@ export const saveStoredData = (data: {
     if (data.accountantPin) localStorage.setItem(KEYS.ACCOUNTANT_PIN, data.accountantPin);
     if (data.sheetResetPassword) localStorage.setItem(KEYS.SHEET_RESET_PASSWORD, data.sheetResetPassword);
     if (data.lastSync) localStorage.setItem(KEYS.LAST_SYNC, JSON.stringify(data.lastSync));
+    if (data.portalView) localStorage.setItem(KEYS.PORTAL_VIEW, data.portalView);
   } catch (e) {
     console.error('Failed to save to local storage', e);
   }

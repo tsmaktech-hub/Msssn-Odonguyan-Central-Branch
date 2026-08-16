@@ -20,8 +20,27 @@ import { FinancesWorkspace } from './components/FinancesWorkspace';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 export default function App() {
-  // Main Navigation View
-  const [portalView, setPortalView] = useState<MainPortalView>('landing');
+  // Main Navigation View (persists active page across browser refresh)
+  const [portalView, setPortalView] = useState<MainPortalView>(() => {
+    try {
+      const savedView = localStorage.getItem('mssn_portal_view_v3') as MainPortalView | null;
+      const attAuth = localStorage.getItem('mssn_auth_attendance_officer');
+      const finAuth = localStorage.getItem('mssn_auth_accountant');
+
+      if (savedView === 'attendance_workspace' && attAuth) return 'attendance_workspace';
+      if (savedView === 'finances_workspace' && finAuth) return 'finances_workspace';
+      if (savedView === 'attendance_auth') return 'attendance_auth';
+      if (savedView === 'finances_auth') return 'finances_auth';
+      if (savedView === 'landing') return 'landing';
+
+      if (attAuth && !finAuth) return 'attendance_workspace';
+      if (finAuth && !attAuth) return 'finances_workspace';
+      return savedView || 'landing';
+    } catch {
+      return 'landing';
+    }
+  });
+
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
   // Core App Data
@@ -57,6 +76,18 @@ export default function App() {
     setAccountantPin(loaded.accountantPin);
     setSheetResetPassword(loaded.sheetResetPassword || '1234');
     setLastSync(loaded.lastSync);
+
+    if (loaded.portalView) {
+      if (loaded.portalView === 'attendance_workspace' && loaded.attendanceUser) {
+        setPortalView('attendance_workspace');
+      } else if (loaded.portalView === 'finances_workspace' && loaded.financeUser) {
+        setPortalView('finances_workspace');
+      } else if (loaded.portalView === 'attendance_auth' || loaded.portalView === 'finances_auth') {
+        setPortalView(loaded.portalView);
+      } else if (loaded.portalView === 'landing') {
+        setPortalView('landing');
+      }
+    }
   }, []);
 
   // Save to LocalStorage on state updates
@@ -74,6 +105,7 @@ export default function App() {
       accountantPin,
       sheetResetPassword,
       lastSync,
+      portalView,
     });
   }, [
     programs, 
@@ -87,7 +119,8 @@ export default function App() {
     financeUser, 
     accountantPin,
     sheetResetPassword,
-    lastSync
+    lastSync,
+    portalView
   ]);
 
   // Handler: Select Attendance Button on Landing Page

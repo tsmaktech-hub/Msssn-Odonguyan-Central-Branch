@@ -68,13 +68,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       // Check existing users or default
       const found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
       if (found) {
-        onLoginSuccess(found);
+        const updatedUser: UserAccount = {
+          ...found,
+          password: password.trim(),
+        };
+        onRegisterUser(updatedUser);
+        onLoginSuccess(updatedUser);
       } else {
         // Create user session dynamically
         const newUser: UserAccount = {
           id: `usr-${Date.now()}`,
           name: email.split('@')[0].toUpperCase(),
           email: email.trim(),
+          password: password.trim(),
           role: isAttendance ? 'attendance_officer' : 'accountant',
           department: department || (isAttendance ? 'Secretariat' : 'Treasury'),
         };
@@ -109,6 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         id: `usr-${Date.now()}`,
         name: name.trim(),
         email: email.trim(),
+        password: password.trim(),
         role: isAttendance ? 'attendance_officer' : 'accountant',
         department: department.trim() || (isAttendance ? 'Secretariat' : 'Treasury & Finance'),
       };
@@ -130,12 +137,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         id: 'demo-att-1',
         name: 'Abubakar Idris (General Secretary)',
         email: 'secretary@mssnodonguyan.org',
+        password: 'password',
         role: 'attendance_officer',
         department: 'Secretariat'
       } : {
         id: 'demo-fin-1',
         name: 'Hamzat Salami (Financial Secretary / Accountant)',
         email: 'accountant@mssnodonguyan.org',
+        password: 'password',
         role: 'accountant',
         department: 'Treasury & Finance'
       };

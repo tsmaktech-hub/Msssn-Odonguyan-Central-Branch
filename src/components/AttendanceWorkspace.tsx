@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   UserAccount, 
   Attendee, 
@@ -94,7 +94,21 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   onClearAttendance,
   onUpdateProgramDate,
 }) => {
-  const [selectedGenderTab, setSelectedGenderTab] = useState<'brothers' | 'sisters' | 'all'>('brothers');
+  const [selectedGenderTab, setSelectedGenderTab] = useState<'brothers' | 'sisters' | 'all'>(() => {
+    try {
+      const saved = localStorage.getItem('mssn_attendance_gender_tab');
+      if (saved === 'brothers' || saved === 'sisters' || saved === 'all') return saved;
+      return 'brothers';
+    } catch {
+      return 'brothers';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mssn_attendance_gender_tab', selectedGenderTab);
+    } catch {}
+  }, [selectedGenderTab]);
   const [selectedProgramId, setSelectedProgramId] = useState<string>(programs[0]?.id || 'prog-1');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -356,12 +370,18 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     }
 
     if (!enteredResetPassword.trim()) {
-      setResetPasswordError('Please enter the Sheet Reset Password.');
+      setResetPasswordError('Please enter your account login password to authorize season reset.');
       return;
     }
 
-    if (enteredResetPassword.trim() !== sheetResetPassword.trim()) {
-      setResetPasswordError('Incorrect Sheet Reset Password! Please provide the password set during executive logout.');
+    const correctPassword = user.password?.trim() || sheetResetPassword?.trim() || 'password';
+    const isMatched = 
+      enteredResetPassword.trim() === correctPassword ||
+      (user.password && enteredResetPassword.trim() === user.password.trim()) ||
+      (sheetResetPassword && enteredResetPassword.trim() === sheetResetPassword.trim());
+
+    if (!isMatched) {
+      setResetPasswordError('Incorrect login password! Please enter the exact password you used to log in.');
       return;
     }
 
@@ -373,7 +393,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     setEnteredResetPassword('');
     setResetPasswordError('');
     setIsSeasonModalOpen(false);
-    alert('New Season started successfully! All previous synced sessions and attendance marks have been reset. Fresh active sessions are ready with all member names saved in your roster.');
+    alert('New Season started successfully! All previous attendance marks have been reset for the new session, while all registered member names remain saved in your roster.');
   };
 
   return (
@@ -1385,7 +1405,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
                     <KeyRound className="w-3.5 h-3.5 text-amber-700" />
-                    Sheet Reset Security Password / OTP *
+                    Account Login Password *
                   </label>
                   <span className="text-[10px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
                     Required
@@ -1400,7 +1420,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       setEnteredResetPassword(e.target.value);
                       if (resetPasswordError) setResetPasswordError('');
                     }}
-                    placeholder="Enter one-time sheet reset password"
+                    placeholder="Enter your account login password"
                     className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50"
                   />
                   <button
@@ -1418,7 +1438,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Enter the Sheet Reset Password configured when logging out.
+                  Please enter the password you used to log in to authorize resetting the attendance check-ins.
                 </p>
               </div>
 

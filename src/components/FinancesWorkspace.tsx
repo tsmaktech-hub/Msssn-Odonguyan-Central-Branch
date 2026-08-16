@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UserAccount, 
   FinancialTransaction, 
@@ -66,7 +66,23 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   onAddTransaction,
   onDeleteTransaction,
 }) => {
-  const [activeTab, setActiveTab] = useState<FinanceTab>('overview');
+  const [activeTab, setActiveTab] = useState<FinanceTab>(() => {
+    try {
+      const saved = localStorage.getItem('mssn_finance_active_tab') as FinanceTab | null;
+      if (saved === 'overview' || saved === 'income_details' || saved === 'expense_details' || saved === 'accountant_upload') {
+        return saved;
+      }
+      return 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mssn_finance_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
   
   // Modal states for clicking stat cards
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
