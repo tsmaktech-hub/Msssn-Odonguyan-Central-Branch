@@ -187,6 +187,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
   // Sync Toast State
   const [showSyncToast, setShowSyncToast] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Active programs for check-in workspace (excludes completed/synced sessions so dropdown stays clean)
   const activePrograms = useMemo(() => {
@@ -353,12 +354,18 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
   // Handle Sync Button
   const handleSyncClick = () => {
-    const nextProgId = onSyncAttendance(selectedProgramId);
-    if (nextProgId) {
-      setSelectedProgramId(nextProgId);
-    }
-    setShowSyncToast(true);
-    setTimeout(() => setShowSyncToast(false), 4000);
+    if (isSyncing) return;
+    setIsSyncing(true);
+
+    setTimeout(() => {
+      const nextProgId = onSyncAttendance(selectedProgramId);
+      if (nextProgId) {
+        setSelectedProgramId(nextProgId);
+      }
+      setIsSyncing(false);
+      setShowSyncToast(true);
+      setTimeout(() => setShowSyncToast(false), 4000);
+    }, 2000);
   };
 
   // Handle Start New Season Submit
@@ -505,11 +512,12 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
           {/* SYNC ATTENDANCE SHEET BUTTON */}
           <button
             onClick={handleSyncClick}
-            className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-transform transform active:scale-95"
+            disabled={isSyncing}
+            className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-transform transform active:scale-95 disabled:opacity-85 disabled:cursor-not-allowed cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin-slow" />
-            <span>Sync Attendance Sheet</span>
-            {lastSync && (
+            <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing Attendance Sheet (2s)...' : 'Sync Attendance Sheet'}</span>
+            {lastSync && !isSyncing && (
               <span className="text-[10px] sm:text-xs font-normal opacity-80 border-l border-emerald-400/40 pl-2">
                 Last: {new Date(lastSync.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
