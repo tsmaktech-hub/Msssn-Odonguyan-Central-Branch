@@ -38,7 +38,8 @@ import {
   KeyRound,
   Lock,
   CalendarDays,
-  History
+  History,
+  Loader2
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
 import { MemberAttendanceHistoryModal } from './MemberAttendanceHistoryModal';
@@ -176,6 +177,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   const [enteredResetPassword, setEnteredResetPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState('');
+  const [isResettingSeason, setIsResettingSeason] = useState(false);
 
   // Logout Modal state
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -362,6 +364,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Handle Start New Season Submit
   const handleConfirmNewSeason = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isResettingSeason) return;
     setResetPasswordError('');
 
     if (!newSeasonName.trim()) {
@@ -385,15 +388,20 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       return;
     }
 
-    const newProgId = onStartNewSeason(newSeasonName.trim());
-    if (newProgId) {
-      setSelectedProgramId(newProgId);
-    }
-    setNewSeasonName('');
-    setEnteredResetPassword('');
-    setResetPasswordError('');
-    setIsSeasonModalOpen(false);
-    alert('New Season started successfully! All previous attendance marks have been reset for the new session, while all registered member names remain saved in your roster.');
+    // Trigger 2-second round loading spinner before finalizing reset
+    setIsResettingSeason(true);
+    setTimeout(() => {
+      const newProgId = onStartNewSeason(newSeasonName.trim());
+      if (newProgId) {
+        setSelectedProgramId(newProgId);
+      }
+      setNewSeasonName('');
+      setEnteredResetPassword('');
+      setResetPasswordError('');
+      setIsResettingSeason(false);
+      setIsSeasonModalOpen(false);
+      alert('New Season started successfully! All previous attendance marks have been reset for the new session, while all registered member names remain saved in your roster.');
+    }, 2000);
   };
 
   return (
@@ -1356,8 +1364,29 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       {/* MODAL 2: START NEW SEASON */}
       {isSeasonModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 relative overflow-hidden">
             
+            {/* Round Loading Overlay during 2-second reset */}
+            {isResettingSeason && (
+              <div className="absolute inset-0 bg-white/95 backdrop-blur-xs rounded-3xl flex flex-col items-center justify-center z-30 p-6 text-center animate-in fade-in duration-200">
+                <div className="relative mb-5 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <RotateCcw className="w-6 h-6 text-amber-700 animate-spin" />
+                  </div>
+                </div>
+                <h4 className="text-base font-bold text-slate-900 mb-1 font-serif">
+                  Resetting Attendance Sheet...
+                </h4>
+                <p className="text-xs text-slate-600 max-w-xs">
+                  Starting new academic season and clearing check-ins while keeping your full member roster intact.
+                </p>
+                <div className="w-48 h-1.5 bg-amber-100 rounded-full mt-4 overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
               <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
                 <RotateCcw className="w-5 h-5" />
@@ -1394,10 +1423,11 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <input
                   type="text"
                   required
+                  disabled={isResettingSeason}
                   value={newSeasonName}
                   onChange={(e) => setNewSeasonName(e.target.value)}
                   placeholder="e.g. 2026/2027 MSSN Odonguyan Academic Season"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                 />
               </div>
 
@@ -1415,17 +1445,19 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   <input
                     type={showResetPassword ? 'text' : 'password'}
                     required
+                    disabled={isResettingSeason}
                     value={enteredResetPassword}
                     onChange={(e) => {
                       setEnteredResetPassword(e.target.value);
                       if (resetPasswordError) setResetPasswordError('');
                     }}
                     placeholder="Enter your account login password"
-                    className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50"
+                    className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50 disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
+                    disabled={isResettingSeason}
                     onClick={() => setShowResetPassword(!showResetPassword)}
                     className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors cursor-pointer"
                     title={showResetPassword ? 'Hide password' : 'Show password'}
@@ -1445,20 +1477,29 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
+                  disabled={isResettingSeason}
                   onClick={() => {
                     setIsSeasonModalOpen(false);
                     setResetPasswordError('');
                     setEnteredResetPassword('');
                   }}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-md cursor-pointer transition-transform transform active:scale-95"
+                  disabled={isResettingSeason}
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs shadow-md cursor-pointer transition-transform transform active:scale-95 flex items-center gap-2"
                 >
-                  Confirm & Start New Season
+                  {isResettingSeason ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Resetting (2s)...</span>
+                    </>
+                  ) : (
+                    <span>Confirm & Start New Season</span>
+                  )}
                 </button>
               </div>
             </form>
