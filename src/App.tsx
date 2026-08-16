@@ -280,17 +280,50 @@ export default function App() {
     const targetProg = programs.find(p => p.id === currentProgramId) || programs[0];
     const targetProgId = targetProg?.id;
 
-    // 1. When syncing attendance: mark all recorded check-ins for target program as synced and timestamp them
-    setAttendance(prev => prev.map(rec => {
-      if (!targetProgId || rec.programId === targetProgId) {
-        return {
-          ...rec,
-          isSynced: true,
-          syncedAt: rec.syncedAt || new Date().toISOString(),
-        };
-      }
-      return rec;
-    }));
+    // 1. When syncing attendance: ensure every member for this program has a record (unchosen defaults to absent) and mark as synced
+    const targetIsSistersOnly = Boolean(
+      targetProg &&
+      (targetProg.category === 'Sisters Wing' ||
+        targetProg.title.toLowerCase().includes('sisters circle') ||
+        targetProg.title.toLowerCase().includes('sister circle')) &&
+      !targetProg.title.toLowerCase().includes('brother')
+    );
+
+    const eligibleAttendees = attendees.filter(a => !targetIsSistersOnly || a.gender === 'Sister');
+    const nowIso = new Date().toISOString();
+
+    setAttendance(prev => {
+      const recordsForTarget = prev.filter(r => r.programId === targetProgId);
+      const otherRecords = prev.filter(r => r.programId !== targetProgId);
+
+      const existingMemberIds = new Set(recordsForTarget.map(r => r.attendeeId));
+
+      const updatedExisting = recordsForTarget.map(rec => ({
+        ...rec,
+        status: rec.status || 'absent',
+        isSynced: true,
+        syncedAt: rec.syncedAt || nowIso,
+      }));
+
+      // Create absent records for eligible attendees who were not chosen
+      const newlyAddedAbsent: AttendanceRecord[] = [];
+      eligibleAttendees.forEach(att => {
+        if (!existingMemberIds.has(att.id)) {
+          newlyAddedAbsent.push({
+            id: `rec-${Date.now()}-${att.id}`,
+            programId: targetProgId!,
+            seasonId: activeSeasonId,
+            attendeeId: att.id,
+            status: 'absent',
+            updatedAt: nowIso,
+            isSynced: true,
+            syncedAt: nowIso,
+          });
+        }
+      });
+
+      return [...otherRecords, ...updatedExisting, ...newlyAddedAbsent];
+    });
 
     // 2. Mark the current synced program as completed
     setPrograms(prev => prev.map(p => p.id === targetProgId ? { ...p, status: 'completed' as const } : p));
