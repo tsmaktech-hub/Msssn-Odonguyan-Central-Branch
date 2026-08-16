@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  UserCheck, 
-  Wallet, 
   Lock, 
   Mail, 
   User, 
@@ -9,7 +7,6 @@ import {
   ArrowLeft, 
   ShieldAlert, 
   KeyRound, 
-  Sparkles,
   Check,
   Eye,
   EyeOff,
@@ -122,35 +119,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       onRegisterUser(newUser);
       onLoginSuccess(newUser);
-      setIsLoading(false);
-    }, 2000);
-  };
-
-  const handleQuickDemoLogin = () => {
-    if (isLoading) return;
-    setError('');
-    setIsLoading(true);
-    setLoadingAction(isAttendance ? 'Loading Secretariat Demo Workspace...' : 'Loading Financial Treasury Demo Workspace...');
-
-    setTimeout(() => {
-      const defaultUser: UserAccount = isAttendance ? {
-        id: 'demo-att-1',
-        name: 'Abubakar Idris (General Secretary)',
-        email: 'secretary@mssnodonguyan.org',
-        password: 'password',
-        role: 'attendance_officer',
-        department: 'Secretariat'
-      } : {
-        id: 'demo-fin-1',
-        name: 'Hamzat Salami (Financial Secretary / Accountant)',
-        email: 'accountant@mssnodonguyan.org',
-        password: 'password',
-        role: 'accountant',
-        department: 'Treasury & Finance'
-      };
-
-      onRegisterUser(defaultUser);
-      onLoginSuccess(defaultUser);
       setIsLoading(false);
     }, 2000);
   };
@@ -424,29 +392,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </form>
           )}
-
-          {/* Quick Demo Credentials Button */}
-          <div className="pt-4 border-t border-slate-200 text-center">
-            <p className="text-xs text-slate-500 mb-2">Want to test the app instantly?</p>
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={handleQuickDemoLogin}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-300 cursor-pointer disabled:opacity-60"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
-                  <span>Loading Demo Workspace...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className={`w-4 h-4 ${isAttendance ? 'text-emerald-600' : 'text-amber-600'}`} />
-                  <span>1-Click Demo Sign In ({isAttendance ? 'General Secretary' : 'Financial Accountant'})</span>
-                </>
-              )}
-            </button>
-          </div>
 
         </div>
 
