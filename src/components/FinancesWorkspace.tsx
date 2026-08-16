@@ -33,6 +33,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { formatNaira, exportTransactionsToCSV } from '../lib/storage';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 interface FinancesWorkspaceProps {
   user: UserAccount;
@@ -44,6 +45,8 @@ interface FinancesWorkspaceProps {
   programs: Program[];
   accountantPin: string;
   onUpdateAccountantPin: (newPin: string) => void;
+  sheetResetPassword?: string;
+  onUpdateSheetResetPassword?: (pwd: string) => void;
 
   // Handlers
   onAddTransaction: (txData: Omit<FinancialTransaction, 'id' | 'createdAt'>) => void;
@@ -58,6 +61,8 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   programs,
   accountantPin,
   onUpdateAccountantPin,
+  sheetResetPassword = '1234',
+  onUpdateSheetResetPassword,
   onAddTransaction,
   onDeleteTransaction,
 }) => {
@@ -66,6 +71,7 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   // Modal states for clicking stat cards
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Accountant Security PIN Lock state
   const [isPinUnlocked, setIsPinUnlocked] = useState(false);
@@ -181,29 +187,20 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Logo & Portal Info */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={onBackToPortal}
-              className="p-1.5 sm:p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors"
-              title="Return to Main Portal Selection"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
-                alt="MSSN Odonguyan Executives Logo" 
-                className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 object-contain shrink-0 rounded-xl drop-shadow-md" 
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <h1 className="text-xs sm:text-base font-extrabold leading-tight font-serif text-white">
-                  Financial Records Treasury
-                </h1>
-                <p className="hidden sm:block text-xs text-emerald-200">
-                  MSSN Odonguyan Central Branch Accountant Portal
-                </p>
-              </div>
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
+            <img 
+              src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+              alt="MSSN Odonguyan Executives Logo" 
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 object-contain shrink-0 rounded-xl drop-shadow-md" 
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <h1 className="text-xs sm:text-base font-extrabold leading-tight font-serif text-white">
+                Financial Records Treasury
+              </h1>
+              <p className="hidden sm:block text-xs text-emerald-200">
+                MSSN Odonguyan Central Branch Accountant Portal
+              </p>
             </div>
           </div>
 
@@ -218,8 +215,8 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
             </div>
 
             <button
-              onClick={onLogout}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700"
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700 cursor-pointer"
               title="Logout"
             >
               <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -947,6 +944,16 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      {/* LOGOUT CONFIRMATION */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirmLogout={() => {
+          setIsLogoutModalOpen(false);
+          onLogout();
+        }}
+      />
 
     </div>
   );

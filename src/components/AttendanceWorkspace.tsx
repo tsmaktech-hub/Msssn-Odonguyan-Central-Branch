@@ -34,12 +34,16 @@ import {
   UserCheck,
   Pencil,
   Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
   CalendarDays,
   History
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
 import { MemberAttendanceHistoryModal } from './MemberAttendanceHistoryModal';
 import { DateAttendanceSearchModal } from './DateAttendanceSearchModal';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 interface AttendanceWorkspaceProps {
   user: UserAccount;
@@ -53,6 +57,8 @@ interface AttendanceWorkspaceProps {
   seasons: Season[];
   activeSeasonId: string;
   lastSync: SyncLog | null;
+  sheetResetPassword?: string;
+  onUpdateSheetResetPassword?: (pwd: string) => void;
 
   // Handlers
   onUpdateAttendance: (programId: string, attendeeId: string, status: AttendanceStatus, notes?: string, isSynced?: boolean) => void;
@@ -76,6 +82,8 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   seasons,
   activeSeasonId,
   lastSync,
+  sheetResetPassword = '1234',
+  onUpdateSheetResetPassword,
   onUpdateAttendance,
   onAddAttendee,
   onEditAttendee,
@@ -151,6 +159,12 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // New Season Modal state
   const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState('');
+  const [enteredResetPassword, setEnteredResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+
+  // Logout Modal state
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Member Attendance History Modal state
   const [selectedHistoryMember, setSelectedHistoryMember] = useState<Attendee | null>(null);
@@ -334,8 +348,20 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   // Handle Start New Season Submit
   const handleConfirmNewSeason = (e: React.FormEvent) => {
     e.preventDefault();
+    setResetPasswordError('');
+
     if (!newSeasonName.trim()) {
       alert('Please enter a title for the new season.');
+      return;
+    }
+
+    if (!enteredResetPassword.trim()) {
+      setResetPasswordError('Please enter the Sheet Reset Password.');
+      return;
+    }
+
+    if (enteredResetPassword.trim() !== sheetResetPassword.trim()) {
+      setResetPasswordError('Incorrect Sheet Reset Password! Please provide the password set during executive logout.');
       return;
     }
 
@@ -344,6 +370,8 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       setSelectedProgramId(newProgId);
     }
     setNewSeasonName('');
+    setEnteredResetPassword('');
+    setResetPasswordError('');
     setIsSeasonModalOpen(false);
     alert('New Season started successfully! All previous synced sessions and attendance marks have been reset. Fresh active sessions are ready with all member names saved in your roster.');
   };
@@ -356,29 +384,20 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Logo & Portal Info */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={onBackToPortal}
-              className="p-1.5 sm:p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors"
-              title="Return to Main Portal Selection"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
-                alt="MSSN Odonguyan Executives Logo" 
-                className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 object-contain shrink-0 rounded-xl drop-shadow-md" 
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <h1 className="text-xs sm:text-base font-extrabold leading-tight font-serif text-white">
-                  Attendance Sheet Portal
-                </h1>
-                <p className="hidden sm:block text-xs text-emerald-200">
-                  MSSN Odonguyan Central Branch Secretariat
-                </p>
-              </div>
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
+            <img 
+              src="https://lh3.googleusercontent.com/u/0/d/1AoXrsfCstsRkPAsC0DSr-Pv3-UQTz126" 
+              alt="MSSN Odonguyan Executives Logo" 
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 object-contain shrink-0 rounded-xl drop-shadow-md" 
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <h1 className="text-xs sm:text-base font-extrabold leading-tight font-serif text-white">
+                Attendance Sheet Portal
+              </h1>
+              <p className="hidden sm:block text-xs text-emerald-200">
+                MSSN Odonguyan Central Branch Secretariat
+              </p>
             </div>
           </div>
 
@@ -393,8 +412,8 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             </div>
 
             <button
-              onClick={onLogout}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700/50"
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700/50 cursor-pointer"
               title="Logout"
             >
               <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -1341,6 +1360,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             </div>
 
             <form onSubmit={handleConfirmNewSeason} className="space-y-4">
+              {resetPasswordError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{resetPasswordError}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   New Season Title *
@@ -1355,17 +1381,62 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                    Sheet Reset Security Password / OTP *
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
+                    Required
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? 'text' : 'password'}
+                    required
+                    value={enteredResetPassword}
+                    onChange={(e) => {
+                      setEnteredResetPassword(e.target.value);
+                      if (resetPasswordError) setResetPasswordError('');
+                    }}
+                    placeholder="Enter one-time sheet reset password"
+                    className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors cursor-pointer"
+                    title={showResetPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showResetPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Enter the Sheet Reset Password configured when logging out.
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsSeasonModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs"
+                  onClick={() => {
+                    setIsSeasonModalOpen(false);
+                    setResetPasswordError('');
+                    setEnteredResetPassword('');
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-md"
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-md cursor-pointer transition-transform transform active:scale-95"
                 >
                   Confirm & Start New Season
                 </button>
@@ -1396,6 +1467,16 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         attendance={attendance}
         onUpdateAttendance={onUpdateAttendance}
         onSelectMemberHistory={(member) => setSelectedHistoryMember(member)}
+      />
+
+      {/* MODAL 5: LOGOUT CONFIRMATION */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirmLogout={() => {
+          setIsLogoutModalOpen(false);
+          onLogout();
+        }}
       />
 
     </div>

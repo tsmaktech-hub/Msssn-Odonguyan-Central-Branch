@@ -27,6 +27,7 @@ const KEYS = {
   ATTENDANCE_AUTH: 'mssn_auth_attendance_officer',
   FINANCE_AUTH: 'mssn_auth_accountant',
   ACCOUNTANT_PIN: 'mssn_accountant_pin_v3',
+  SHEET_RESET_PASSWORD: 'mssn_sheet_reset_password_v1',
   LAST_SYNC: 'mssn_last_sync_log_v3'
 };
 
@@ -50,6 +51,7 @@ export const loadStoredData = () => {
     const storedAttAuth = localStorage.getItem(KEYS.ATTENDANCE_AUTH);
     const storedFinAuth = localStorage.getItem(KEYS.FINANCE_AUTH);
     const storedPin = localStorage.getItem(KEYS.ACCOUNTANT_PIN);
+    const storedResetPass = localStorage.getItem(KEYS.SHEET_RESET_PASSWORD);
     const storedSync = localStorage.getItem(KEYS.LAST_SYNC);
 
     const seasons: Season[] = storedSeasons ? JSON.parse(storedSeasons) : initialSeasons;
@@ -94,6 +96,7 @@ export const loadStoredData = () => {
       attendanceUser: storedAttAuth ? JSON.parse(storedAttAuth) as UserAccount : null,
       financeUser: storedFinAuth ? JSON.parse(storedFinAuth) as UserAccount : null,
       accountantPin: storedPin || '1234',
+      sheetResetPassword: storedResetPass || '1234',
       lastSync: storedSync ? JSON.parse(storedSync) as SyncLog : null,
     };
   } catch (e) {
@@ -109,6 +112,7 @@ export const loadStoredData = () => {
       attendanceUser: null,
       financeUser: null,
       accountantPin: '1234',
+      sheetResetPassword: '1234',
       lastSync: null,
     };
   }
@@ -125,6 +129,7 @@ export const saveStoredData = (data: {
   attendanceUser?: UserAccount | null;
   financeUser?: UserAccount | null;
   accountantPin?: string;
+  sheetResetPassword?: string;
   lastSync?: SyncLog | null;
 }) => {
   try {
@@ -145,6 +150,7 @@ export const saveStoredData = (data: {
       else localStorage.removeItem(KEYS.FINANCE_AUTH);
     }
     if (data.accountantPin) localStorage.setItem(KEYS.ACCOUNTANT_PIN, data.accountantPin);
+    if (data.sheetResetPassword) localStorage.setItem(KEYS.SHEET_RESET_PASSWORD, data.sheetResetPassword);
     if (data.lastSync) localStorage.setItem(KEYS.LAST_SYNC, JSON.stringify(data.lastSync));
   } catch (e) {
     console.error('Failed to save to local storage', e);
@@ -164,6 +170,7 @@ export const resetStoredData = () => {
     attendanceUser: null,
     financeUser: null,
     accountantPin: '1234',
+    sheetResetPassword: '1234',
     lastSync: null,
   };
 };

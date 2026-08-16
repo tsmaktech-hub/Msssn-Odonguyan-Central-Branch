@@ -12,7 +12,8 @@ import {
   Sparkles,
   Check,
   Eye,
-  EyeOff
+  EyeOff,
+  Loader2
 } from 'lucide-react';
 import { UserAccount } from '../types';
 
@@ -44,39 +45,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState('');
 
   const isAttendance = portalType === 'attendance';
   const themeColor = isAttendance ? 'emerald' : 'amber';
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setError('');
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setError('Please provide both email address and password.');
       return;
     }
 
-    // Check existing users or default
-    const found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (found) {
-      onLoginSuccess(found);
-    } else {
-      // Create user session dynamically
-      const newUser: UserAccount = {
-        id: `usr-${Date.now()}`,
-        name: email.split('@')[0].toUpperCase(),
-        email: email.trim(),
-        role: isAttendance ? 'attendance_officer' : 'accountant',
-        department: department || (isAttendance ? 'Secretariat' : 'Treasury'),
-      };
-      onRegisterUser(newUser);
-      onLoginSuccess(newUser);
-    }
+    setIsLoading(true);
+    setLoadingAction(isAttendance ? 'Verifying Secretariat credentials...' : 'Verifying Treasury credentials...');
+
+    setTimeout(() => {
+      // Check existing users or default
+      const found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+      if (found) {
+        onLoginSuccess(found);
+      } else {
+        // Create user session dynamically
+        const newUser: UserAccount = {
+          id: `usr-${Date.now()}`,
+          name: email.split('@')[0].toUpperCase(),
+          email: email.trim(),
+          role: isAttendance ? 'attendance_officer' : 'accountant',
+          department: department || (isAttendance ? 'Secretariat' : 'Treasury'),
+        };
+        onRegisterUser(newUser);
+        onLoginSuccess(newUser);
+      }
+      setIsLoading(false);
+    }, 2000);
   };
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setError('');
 
     if (!name.trim() || !email.trim() || !password) {
@@ -90,38 +101,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const newUser: UserAccount = {
-      id: `usr-${Date.now()}`,
-      name: name.trim(),
-      email: email.trim(),
-      role: isAttendance ? 'attendance_officer' : 'accountant',
-      department: department.trim() || (isAttendance ? 'Secretariat' : 'Treasury & Finance'),
-    };
+    setIsLoading(true);
+    setLoadingAction('Creating your executive account & initializing records...');
 
-    onRegisterUser(newUser);
-    setSuccessMsg('Account created successfully! Logging you in...');
     setTimeout(() => {
+      const newUser: UserAccount = {
+        id: `usr-${Date.now()}`,
+        name: name.trim(),
+        email: email.trim(),
+        role: isAttendance ? 'attendance_officer' : 'accountant',
+        department: department.trim() || (isAttendance ? 'Secretariat' : 'Treasury & Finance'),
+      };
+
+      onRegisterUser(newUser);
       onLoginSuccess(newUser);
-    }, 600);
+      setIsLoading(false);
+    }, 2000);
   };
 
   const handleQuickDemoLogin = () => {
-    const defaultUser: UserAccount = isAttendance ? {
-      id: 'demo-att-1',
-      name: 'Abubakar Idris (General Secretary)',
-      email: 'secretary@mssnodonguyan.org',
-      role: 'attendance_officer',
-      department: 'Secretariat'
-    } : {
-      id: 'demo-fin-1',
-      name: 'Hamzat Salami (Financial Secretary / Accountant)',
-      email: 'accountant@mssnodonguyan.org',
-      role: 'accountant',
-      department: 'Treasury & Finance'
-    };
+    if (isLoading) return;
+    setError('');
+    setIsLoading(true);
+    setLoadingAction(isAttendance ? 'Loading Secretariat Demo Workspace...' : 'Loading Financial Treasury Demo Workspace...');
 
-    onRegisterUser(defaultUser);
-    onLoginSuccess(defaultUser);
+    setTimeout(() => {
+      const defaultUser: UserAccount = isAttendance ? {
+        id: 'demo-att-1',
+        name: 'Abubakar Idris (General Secretary)',
+        email: 'secretary@mssnodonguyan.org',
+        role: 'attendance_officer',
+        department: 'Secretariat'
+      } : {
+        id: 'demo-fin-1',
+        name: 'Hamzat Salami (Financial Secretary / Accountant)',
+        email: 'accountant@mssnodonguyan.org',
+        role: 'accountant',
+        department: 'Treasury & Finance'
+      };
+
+      onRegisterUser(defaultUser);
+      onLoginSuccess(defaultUser);
+      setIsLoading(false);
+    }, 2000);
   };
 
   return (
@@ -138,8 +160,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
       </div>
 
-      <div className="max-w-sm sm:max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+      <div className="max-w-sm sm:max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 relative">
         
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-30 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+            <div className={`w-14 h-14 rounded-2xl ${isAttendance ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'} flex items-center justify-center mb-4 shadow-sm`}>
+              <Loader2 className="w-7 h-7 animate-spin" />
+            </div>
+            <h4 className="text-base font-bold text-slate-900 font-serif mb-1">
+              Authenticating Session
+            </h4>
+            <p className="text-xs text-slate-600 max-w-xs mb-4">
+              {loadingAction || 'Please wait while we prepare your executive workspace...'}
+            </p>
+            {/* Animated 2-second Progress Bar */}
+            <div className="w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+              <div 
+                className={`h-full ${isAttendance ? 'bg-emerald-600' : 'bg-amber-600'} rounded-full animate-pulse transition-all duration-2000`}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <span className="text-[10px] text-slate-400 mt-2 font-medium tracking-wide">
+              Establishing secure session • 2s verification
+            </span>
+          </div>
+        )}
+
         {/* Header - Centered Logo Only */}
         <div className="p-4 pt-6 text-center flex flex-col items-center justify-center bg-white border-b border-slate-100">
           <img 
@@ -154,6 +201,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="grid grid-cols-2 bg-slate-100 p-1.5 border-b border-slate-200">
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => { setAuthMode('login'); setError(''); setSuccessMsg(''); }}
             className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
               authMode === 'login' 
@@ -165,6 +213,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => { setAuthMode('signup'); setError(''); setSuccessMsg(''); }}
             className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
               authMode === 'signup' 
@@ -203,10 +252,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
+                    disabled={isLoading}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={isAttendance ? "secretary@mssnodonguyan.org" : "accountant@mssnodonguyan.org"}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -219,16 +269,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    disabled={isLoading}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
+                    disabled={isLoading}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none p-0.5 rounded-md transition-colors cursor-pointer"
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none p-0.5 rounded-md transition-colors cursor-pointer disabled:opacity-50"
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -242,13 +294,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all ${
+                disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed ${
                   isAttendance 
                     ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' 
                     : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
                 }`}
               >
-                Log In to {isAttendance ? 'Attendance' : 'Financial'} System
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Logging In (2s)...</span>
+                  </>
+                ) : (
+                  <span>Log In to {isAttendance ? 'Attendance' : 'Financial'} System</span>
+                )}
               </button>
             </form>
           ) : (
@@ -261,10 +321,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
+                    disabled={isLoading}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Bro. Abubakar Idris"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -277,10 +338,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
+                    disabled={isLoading}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="youremail@mssnodonguyan.org"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -293,10 +355,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
+                    disabled={isLoading}
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                     placeholder={isAttendance ? "Secretariat Unit" : "Treasury & Finance"}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -309,16 +372,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    disabled={isLoading}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Create a password"
-                    className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
+                    disabled={isLoading}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none p-0.5 rounded-md transition-colors cursor-pointer"
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none p-0.5 rounded-md transition-colors cursor-pointer disabled:opacity-50"
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -332,13 +397,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all ${
+                disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed ${
                   isAttendance 
                     ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' 
                     : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
                 }`}
               >
-                Create Account & Sign In
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Creating Account (2s)...</span>
+                  </>
+                ) : (
+                  <span>Create Account & Sign In</span>
+                )}
               </button>
             </form>
           )}
@@ -348,11 +421,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-xs text-slate-500 mb-2">Want to test the app instantly?</p>
             <button
               type="button"
+              disabled={isLoading}
               onClick={handleQuickDemoLogin}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-300"
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-300 cursor-pointer disabled:opacity-60"
             >
-              <Sparkles className={`w-4 h-4 ${isAttendance ? 'text-emerald-600' : 'text-amber-600'}`} />
-              1-Click Demo Sign In ({isAttendance ? 'General Secretary' : 'Financial Accountant'})
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
+                  <span>Loading Demo Workspace...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className={`w-4 h-4 ${isAttendance ? 'text-emerald-600' : 'text-amber-600'}`} />
+                  <span>1-Click Demo Sign In ({isAttendance ? 'General Secretary' : 'Financial Accountant'})</span>
+                </>
+              )}
             </button>
           </div>
 

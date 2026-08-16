@@ -39,6 +39,7 @@ export default function App() {
 
   // Security PIN & Sync Logs
   const [accountantPin, setAccountantPin] = useState<string>('1234');
+  const [sheetResetPassword, setSheetResetPassword] = useState<string>('1234');
   const [lastSync, setLastSync] = useState<SyncLog | null>(null);
 
   // Initial Data Load
@@ -54,6 +55,7 @@ export default function App() {
     setAttendanceUser(loaded.attendanceUser);
     setFinanceUser(loaded.financeUser);
     setAccountantPin(loaded.accountantPin);
+    setSheetResetPassword(loaded.sheetResetPassword || '1234');
     setLastSync(loaded.lastSync);
   }, []);
 
@@ -70,6 +72,7 @@ export default function App() {
       attendanceUser,
       financeUser,
       accountantPin,
+      sheetResetPassword,
       lastSync,
     });
   }, [
@@ -82,7 +85,8 @@ export default function App() {
     users, 
     attendanceUser, 
     financeUser, 
-    accountantPin, 
+    accountantPin,
+    sheetResetPassword,
     lastSync
   ]);
 
@@ -423,6 +427,8 @@ export default function App() {
           seasons={seasons}
           activeSeasonId={activeSeasonId}
           lastSync={lastSync}
+          sheetResetPassword={sheetResetPassword}
+          onUpdateSheetResetPassword={(newPwd) => setSheetResetPassword(newPwd)}
           onUpdateAttendance={handleUpdateAttendance}
           onAddAttendee={handleAddAttendee}
           onEditAttendee={handleEditAttendee}
@@ -459,6 +465,8 @@ export default function App() {
           programs={programs}
           accountantPin={accountantPin}
           onUpdateAccountantPin={(newPin) => setAccountantPin(newPin)}
+          sheetResetPassword={sheetResetPassword}
+          onUpdateSheetResetPassword={(newPwd) => setSheetResetPassword(newPwd)}
           onAddTransaction={handleAddTransaction}
           onDeleteTransaction={handleDeleteTransaction}
         />
