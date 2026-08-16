@@ -66,7 +66,7 @@ interface AttendanceWorkspaceProps {
   onAddAttendee: (memberData: Omit<Attendee, 'id' | 'createdAt'>) => void;
   onEditAttendee?: (id: string, updatedData: Partial<Attendee>) => void;
   onDeleteAttendee: (id: string) => void;
-  onStartNewSeason: (newSeasonName: string) => string | void;
+  onStartNewSeason: (newSeasonName: string, resetScope?: 'weekly_usrah' | 'sisters_circle' | 'all') => string | void;
   onSyncAttendance: (currentProgramId?: string) => string | void;
   onMarkAllPresent: (programId: string, genderFilter?: GenderType) => void;
   onClearAttendance: (programId: string) => void;
@@ -173,11 +173,26 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
   // New Season Modal state
   const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
+  const [resetScope, setResetScope] = useState<'weekly_usrah' | 'sisters_circle' | 'all'>('weekly_usrah');
   const [newSeasonName, setNewSeasonName] = useState('');
   const [enteredResetPassword, setEnteredResetPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState('');
   const [isResettingSeason, setIsResettingSeason] = useState(false);
+
+  const handleOpenSeasonModal = (targetScope?: 'weekly_usrah' | 'sisters_circle' | 'all') => {
+    if (targetScope) {
+      setResetScope(targetScope);
+    } else if (isSistersOnlyProgram) {
+      setResetScope('sisters_circle');
+    } else {
+      setResetScope('weekly_usrah');
+    }
+    setNewSeasonName(activeSeason?.name || '2025/2026 MSSN Odonguyan Academic Season');
+    setEnteredResetPassword('');
+    setResetPasswordError('');
+    setIsSeasonModalOpen(true);
+  };
 
   // Logout Modal state
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -390,12 +405,12 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     setResetPasswordError('');
 
     if (!newSeasonName.trim()) {
-      alert('Please enter a title for the new season.');
+      alert('Please enter a title for the season / session.');
       return;
     }
 
     if (!enteredResetPassword.trim()) {
-      setResetPasswordError('Please enter your account login password to authorize season reset.');
+      setResetPasswordError('Please enter your account login password to authorize reset.');
       return;
     }
 
@@ -413,16 +428,22 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     // Trigger 2-second round loading spinner before finalizing reset
     setIsResettingSeason(true);
     setTimeout(() => {
-      const newProgId = onStartNewSeason(newSeasonName.trim());
+      const newProgId = onStartNewSeason(newSeasonName.trim(), resetScope);
       if (newProgId) {
         setSelectedProgramId(newProgId);
       }
-      setNewSeasonName('');
       setEnteredResetPassword('');
       setResetPasswordError('');
       setIsResettingSeason(false);
       setIsSeasonModalOpen(false);
-      alert('New Season started successfully! All previous attendance marks have been reset for the new session, while all registered member names remain saved in your roster.');
+
+      if (resetScope === 'weekly_usrah') {
+        alert('Weekly Usrah (Brothers/Sisters) sheet reset successfully! Check-in marks have been cleared for a fresh active session, while all registered member profiles remain saved in your roster.');
+      } else if (resetScope === 'sisters_circle') {
+        alert('Sisters Circle Usrah sheet reset successfully! Check-in marks have been cleared for a fresh active session, while all registered member profiles remain saved in your roster.');
+      } else {
+        alert('New Season started successfully! All previous attendance check-in marks across both programs have been reset for the new academic season, while all registered member profiles remain saved in your roster.');
+      }
     }, 2000);
   };
 
@@ -511,8 +532,8 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
             <button
-              onClick={() => setIsSeasonModalOpen(true)}
-              className="w-full sm:w-auto px-3.5 py-2 rounded-xl sm:rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-transform transform active:scale-95"
+              onClick={() => handleOpenSeasonModal()}
+              className="w-full sm:w-auto px-3.5 py-2 rounded-xl sm:rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-transform transform active:scale-95 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Start New Season / Reset Sheet</span>
@@ -1415,20 +1436,9 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 <RotateCcw className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Start New Season / Session</h3>
-                <p className="text-xs text-slate-500">Reset attendance check-ins while preserving member roster</p>
+                <h3 className="text-lg font-bold text-slate-900 font-serif">Reset Attendance Sheet / Start New Season</h3>
+                <p className="text-xs text-slate-500">Reset check-ins separately for Weekly Usrah or Sisters Circle, or start a full season</p>
               </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-2">
-              <p className="font-bold flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-amber-700" />
-                How Season Reset Works:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-amber-800">
-                <li>The attendance check-in status marks will reset for the new season.</li>
-                <li><strong>ALL member names (Brothers & Sisters) WILL NOT be deleted.</strong> They remain saved unless you choose to delete them individually.</li>
-              </ul>
             </div>
 
             <form onSubmit={handleConfirmNewSeason} className="space-y-4">
@@ -1439,9 +1449,108 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 </div>
               )}
 
+              {/* SELECT RESET TARGET / SCOPE */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase">
+                  Select Sheet to Reset *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    disabled={isResettingSeason}
+                    onClick={() => setResetScope('weekly_usrah')}
+                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                      resetScope === 'weekly_usrah'
+                        ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-950'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                      Weekly Usrah
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Brothers/Sisters stream only
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isResettingSeason}
+                    onClick={() => setResetScope('sisters_circle')}
+                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                      resetScope === 'sisters_circle'
+                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-950'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-purple-600"></span>
+                      Sisters Circle
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Sisters Wing stream only
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isResettingSeason}
+                    onClick={() => setResetScope('all')}
+                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                      resetScope === 'all'
+                        ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                      Both Sessions
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Full Academic Season Reset
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Explanatory Info Card based on chosen scope */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed space-y-1.5">
+                <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>
+                    {resetScope === 'weekly_usrah' && 'Reset Scope: Weekly Usrah (Brothers/Sisters)'}
+                    {resetScope === 'sisters_circle' && 'Reset Scope: Sisters Circle Usrah'}
+                    {resetScope === 'all' && 'Reset Scope: Complete Season (Both Streams)'}
+                  </span>
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                  {resetScope === 'weekly_usrah' && (
+                    <>
+                      <li>Clears attendance marks for <strong>Weekly Usrah</strong> and starts a fresh active session.</li>
+                      <li><strong>Sisters Circle Usrah</strong> attendance marks will NOT be affected.</li>
+                      <li><strong>ALL registered member profiles</strong> remain permanently saved in your roster.</li>
+                    </>
+                  )}
+                  {resetScope === 'sisters_circle' && (
+                    <>
+                      <li>Clears attendance marks for <strong>Sisters Circle Usrah</strong> and starts a fresh active session.</li>
+                      <li><strong>Weekly Usrah (Brothers/Sisters)</strong> attendance marks will NOT be affected.</li>
+                      <li><strong>ALL registered sister profiles</strong> remain permanently saved in your roster.</li>
+                    </>
+                  )}
+                  {resetScope === 'all' && (
+                    <>
+                      <li>Clears attendance marks across <strong>both streams</strong> for a brand new academic season.</li>
+                      <li><strong>ALL member names (Brothers & Sisters)</strong> remain permanently saved in your roster.</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  New Season Title *
+                  {resetScope === 'all' ? 'New Season Title *' : 'Session / Season Title *'}
                 </label>
                 <input
                   type="text"
@@ -1449,7 +1558,13 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   disabled={isResettingSeason}
                   value={newSeasonName}
                   onChange={(e) => setNewSeasonName(e.target.value)}
-                  placeholder="e.g. 2026/2027 MSSN Odonguyan Academic Season"
+                  placeholder={
+                    resetScope === 'weekly_usrah'
+                      ? 'e.g. 2025/2026 MSSN Odonguyan Weekly Usrah Session'
+                      : resetScope === 'sisters_circle'
+                      ? 'e.g. 2025/2026 MSSN Odonguyan Sisters Circle Session'
+                      : 'e.g. 2026/2027 MSSN Odonguyan Academic Season'
+                  }
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                 />
               </div>
@@ -1493,7 +1608,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Please enter the password you used to log in to authorize resetting the attendance check-ins.
+                  Please enter the password you used to log in to authorize resetting attendance check-ins.
                 </p>
               </div>
 
@@ -1521,7 +1636,11 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       <span>Resetting (2s)...</span>
                     </>
                   ) : (
-                    <span>Confirm & Start New Season</span>
+                    <span>
+                      {resetScope === 'weekly_usrah' && 'Confirm & Reset Weekly Usrah'}
+                      {resetScope === 'sisters_circle' && 'Confirm & Reset Sisters Circle'}
+                      {resetScope === 'all' && 'Confirm & Start New Season'}
+                    </span>
                   )}
                 </button>
               </div>

@@ -219,33 +219,27 @@ export default function App() {
     setAttendance(prev => prev.filter(a => a.attendeeId !== id));
   };
 
-  // Season Reset Handler
-  const handleStartNewSeason = (newSeasonName: string): string => {
-    const newSeasonId = `season-${Date.now()}`;
-    const newSeason: Season = {
-      id: newSeasonId,
-      name: newSeasonName,
-      startDate: new Date().toISOString().slice(0, 10),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Mark previous active seasons as inactive
-    setSeasons(prev => prev.map(s => ({ ...s, isActive: false })).concat(newSeason));
-    setActiveSeasonId(newSeasonId);
-
-    // RESET ATTENDANCE CHECK-IN SHEET FOR NEW SEASON (Clears status marks, preserves all member names in roster!)
-    setAttendance([]);
-    setLastSync(null);
-
-    // Delete all previous synced/completed programs and initialize clean active baseline sessions for the new season
+  // Season / Program Sheet Reset Handler (Supports separate reset for Weekly Usrah or Sisters Circle)
+  const handleStartNewSeason = (newSeasonName: string, resetScope: 'weekly_usrah' | 'sisters_circle' | 'all' = 'all'): string => {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const mainProgramId = `prog-${Date.now()}-1`;
-    const sistersProgramId = `prog-${Date.now()}-2`;
+    const isSistersProgCheck = (p?: Program) => Boolean(
+      p && (
+        p.category === 'Sisters Wing' ||
+        p.title.toLowerCase().includes('sisters circle') ||
+        p.title.toLowerCase().includes('sister circle')
+      ) && !p.title.toLowerCase().includes('brother')
+    );
 
-    const freshPrograms: Program[] = [
-      {
-        id: mainProgramId,
+    if (resetScope === 'weekly_usrah') {
+      // 1. Reset Weekly Usrah (Brothers/Sisters) stream ONLY
+      const weeklyProgIds = programs.filter(p => !isSistersProgCheck(p)).map(p => p.id);
+      
+      // Clear attendance only for Weekly Usrah
+      setAttendance(prev => prev.filter(rec => !weeklyProgIds.includes(rec.programId)));
+
+      const freshWeeklyProgId = `prog-${Date.now()}-weekly`;
+      const freshWeeklyProg: Program = {
+        id: freshWeeklyProgId,
         title: 'Weekly Usrah (Brothers/Sisters)',
         category: 'Usrah Meeting',
         date: todayStr,
@@ -253,26 +247,94 @@ export default function App() {
         location: 'Odonguyan Central Mosque Hall',
         description: 'Weekly spiritual circle, Quranic commentary, Fiqh lectures, and general student welfare meeting.',
         status: 'active',
-        seasonId: newSeasonId,
+        seasonId: activeSeasonId,
         createdAt: new Date().toISOString(),
-      },
-      {
-        id: sistersProgramId,
+      };
+
+      // Keep Sisters Circle programs intact, replace old Weekly Usrah programs with fresh active session
+      setPrograms(prev => {
+        const sistersProgs = prev.filter(p => isSistersProgCheck(p));
+        return [freshWeeklyProg, ...sistersProgs];
+      });
+
+      return freshWeeklyProgId;
+    } else if (resetScope === 'sisters_circle') {
+      // 2. Reset Sisters Circle Usrah stream ONLY
+      const sistersProgIds = programs.filter(p => isSistersProgCheck(p)).map(p => p.id);
+
+      // Clear attendance only for Sisters Circle
+      setAttendance(prev => prev.filter(rec => !sistersProgIds.includes(rec.programId)));
+
+      const freshSistersProgId = `prog-${Date.now()}-sisters`;
+      const freshSistersProg: Program = {
+        id: freshSistersProgId,
         title: 'Sisters Circle Usrah',
         category: 'Sisters Wing',
         date: todayStr,
         time: '02:00 PM - 05:00 PM',
         location: 'Central Branch Islamic Center',
         description: 'Empowerment and spiritual circle session for sisters on modest living, mentorship, and Islamic etiquette.',
-        status: 'upcoming',
-        seasonId: newSeasonId,
+        status: 'active',
+        seasonId: activeSeasonId,
         createdAt: new Date().toISOString(),
-      },
-    ];
+      };
 
-    setPrograms(freshPrograms);
+      // Keep Weekly Usrah programs intact, replace old Sisters Circle programs with fresh active session
+      setPrograms(prev => {
+        const weeklyProgs = prev.filter(p => !isSistersProgCheck(p));
+        return [...weeklyProgs, freshSistersProg];
+      });
 
-    return mainProgramId;
+      return freshSistersProgId;
+    } else {
+      // 3. Reset ALL streams (Complete Season Reset)
+      const newSeasonId = `season-${Date.now()}`;
+      const newSeason: Season = {
+        id: newSeasonId,
+        name: newSeasonName,
+        startDate: todayStr,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      setSeasons(prev => prev.map(s => ({ ...s, isActive: false })).concat(newSeason));
+      setActiveSeasonId(newSeasonId);
+      setAttendance([]);
+      setLastSync(null);
+
+      const mainProgramId = `prog-${Date.now()}-1`;
+      const sistersProgramId = `prog-${Date.now()}-2`;
+
+      const freshPrograms: Program[] = [
+        {
+          id: mainProgramId,
+          title: 'Weekly Usrah (Brothers/Sisters)',
+          category: 'Usrah Meeting',
+          date: todayStr,
+          time: '10:00 AM - 01:00 PM',
+          location: 'Odonguyan Central Mosque Hall',
+          description: 'Weekly spiritual circle, Quranic commentary, Fiqh lectures, and general student welfare meeting.',
+          status: 'active',
+          seasonId: newSeasonId,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: sistersProgramId,
+          title: 'Sisters Circle Usrah',
+          category: 'Sisters Wing',
+          date: todayStr,
+          time: '02:00 PM - 05:00 PM',
+          location: 'Central Branch Islamic Center',
+          description: 'Empowerment and spiritual circle session for sisters on modest living, mentorship, and Islamic etiquette.',
+          status: 'upcoming',
+          seasonId: newSeasonId,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+
+      setPrograms(freshPrograms);
+      return mainProgramId;
+    }
   };
 
   // Sync Attendance Handler
