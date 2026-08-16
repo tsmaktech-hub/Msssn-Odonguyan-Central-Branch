@@ -1134,31 +1134,31 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
       {/* MODAL 1: ADD NEW MEMBER */}
       {isAddMemberOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                  <UserPlus className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                  <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Update New Member Name</h3>
-                  <p className="text-xs text-slate-500">Add a new Brother or Sister to the Odonguyan roster</p>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 font-serif">Add New Member Name</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-500">Add a new Brother or Sister to the Odonguyan roster</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAddMemberOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveMember} className="space-y-4">
+            <form onSubmit={handleSaveMember} className="space-y-3.5 sm:space-y-4">
               
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                   Full Name *
                 </label>
                 <input
@@ -1167,19 +1167,19 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   placeholder="e.g. Brother Usman Bello or Sister Zainab Quadri"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Gender *
                   </label>
                   <select
                     value={newMemberGender}
                     onChange={(e) => setNewMemberGender(e.target.value as GenderType)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
                   >
                     <option value="Brother">Brother (Boy)</option>
                     <option value="Sister">Sister (Girl)</option>
@@ -1187,7 +1187,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Phone Number (Optional)
                   </label>
                   <input
@@ -1195,20 +1195,20 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={newMemberPhone}
                     onChange={(e) => setNewMemberPhone(e.target.value)}
                     placeholder="e.g. 08012345678"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Category
                   </label>
                   <select
                     value={newMemberCategory}
                     onChange={(e) => setNewMemberCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
                   >
                     <option value="Undergraduate">Undergraduate</option>
                     <option value="Secondary Student">Secondary Student</option>
@@ -1218,7 +1218,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     School / Institution / Location
                   </label>
                   <input
@@ -1226,22 +1226,22 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={newMemberInstitution}
                     onChange={(e) => setNewMemberInstitution(e.target.value)}
                     placeholder="e.g. Odonguyan Grammar School"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3">
+              <div className="pt-3 sm:pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddMemberOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer text-center"
                 >
                   Save Member Name
                 </button>
@@ -1255,32 +1255,32 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
       {/* MODAL 2: EDIT MEMBER DETAILS */}
       {editingMember && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[92vh] overflow-y-auto">
             
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                  <Pencil className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                  <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Edit Member Details</h3>
-                  <p className="text-xs text-slate-500">Update personal information, contacts, or institution</p>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 font-serif">Edit Member Details</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-500">Update personal information, contacts, or institution</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingMember(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveEditMember} className="space-y-4">
+            <form onSubmit={handleSaveEditMember} className="space-y-3.5 sm:space-y-4">
               
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                   Full Name *
                 </label>
                 <input
@@ -1289,19 +1289,19 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="e.g. Brother Usman Bello or Sister Zainab Quadri"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                  className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Gender *
                   </label>
                   <select
                     value={editGender}
                     onChange={(e) => setEditGender(e.target.value as GenderType)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
                   >
                     <option value="Brother">Brother (Boy)</option>
                     <option value="Sister">Sister (Girl)</option>
@@ -1309,7 +1309,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Phone Number
                   </label>
                   <input
@@ -1317,20 +1317,20 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     placeholder="e.g. 08012345678"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Category / Level
                   </label>
                   <select
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-semibold"
                   >
                     <option value="Undergraduate">Undergraduate</option>
                     <option value="Secondary Student">Secondary Student</option>
@@ -1340,7 +1340,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Registration / Reg No
                   </label>
                   <input
@@ -1348,14 +1348,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={editRegNo}
                     onChange={(e) => setEditRegNo(e.target.value)}
                     placeholder="e.g. MSSN/2026/042"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     School / Institution
                   </label>
                   <input
@@ -1363,12 +1363,12 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={editInstitution}
                     onChange={(e) => setEditInstitution(e.target.value)}
                     placeholder="e.g. Odonguyan Grammar School"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                     Email Address (Optional)
                   </label>
                   <input
@@ -1376,22 +1376,22 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
                     placeholder="e.g. member@mssn.org"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-3 sm:pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingMember(null)}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   Save Changes
@@ -1407,69 +1407,69 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
       {/* MODAL 2: START NEW SEASON */}
       {isSeasonModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 relative overflow-hidden my-auto max-h-[92vh] overflow-y-auto">
             
             {/* Round Loading Overlay during 2-second reset */}
             {isResettingSeason && (
-              <div className="absolute inset-0 bg-white/95 backdrop-blur-xs rounded-3xl flex flex-col items-center justify-center z-30 p-6 text-center animate-in fade-in duration-200">
-                <div className="relative mb-5 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin" />
+              <div className="absolute inset-0 bg-white/95 backdrop-blur-xs rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center z-30 p-6 text-center animate-in fade-in duration-200">
+                <div className="relative mb-4 flex items-center justify-center">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <RotateCcw className="w-6 h-6 text-amber-700 animate-spin" />
+                    <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-amber-700 animate-spin" />
                   </div>
                 </div>
-                <h4 className="text-base font-bold text-slate-900 mb-1 font-serif">
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1 font-serif">
                   Resetting Attendance Sheet...
                 </h4>
-                <p className="text-xs text-slate-600 max-w-xs">
-                  Starting new academic season and clearing check-ins while keeping your full member roster intact.
+                <p className="text-[11px] sm:text-xs text-slate-600 max-w-xs leading-relaxed">
+                  Starting new session and clearing check-ins while keeping your full member roster intact.
                 </p>
-                <div className="w-48 h-1.5 bg-amber-100 rounded-full mt-4 overflow-hidden">
+                <div className="w-40 sm:w-48 h-1.5 bg-amber-100 rounded-full mt-3 overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                <RotateCcw className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 sm:gap-3 border-b border-slate-100 pb-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 font-serif">Reset Attendance Sheet / Start New Season</h3>
-                <p className="text-xs text-slate-500">Reset check-ins separately for Weekly Usrah or Sisters Circle, or start a full season</p>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 font-serif leading-tight">Reset Sheet / Start New Season</h3>
+                <p className="text-[10px] sm:text-xs text-slate-500 truncate">Reset check-ins separately for Weekly Usrah or Sisters Circle</p>
               </div>
             </div>
 
-            <form onSubmit={handleConfirmNewSeason} className="space-y-4">
+            <form onSubmit={handleConfirmNewSeason} className="space-y-3.5 sm:space-y-4">
               {resetPasswordError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>{resetPasswordError}</span>
                 </div>
               )}
 
-              {/* SELECT RESET TARGET / SCOPE */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase">
+              {/* SELECT RESET TARGET / SCOPE (COMPACT & REDUCED FONT) */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] sm:text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
                   Select Sheet to Reset *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     disabled={isResettingSeason}
                     onClick={() => setResetScope('weekly_usrah')}
-                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                    className={`p-2.5 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       resetScope === 'weekly_usrah'
-                        ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-950'
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-950 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
                     }`}
                   >
-                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                      Weekly Usrah
+                    <div className="font-bold text-[11px] sm:text-xs flex items-center gap-1.5 mb-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                      <span>Weekly Usrah</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-tight">
+                    <p className="text-[9.5px] sm:text-[10px] text-slate-500 leading-tight">
                       Brothers/Sisters stream only
                     </p>
                   </button>
@@ -1478,17 +1478,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     type="button"
                     disabled={isResettingSeason}
                     onClick={() => setResetScope('sisters_circle')}
-                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                    className={`p-2.5 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       resetScope === 'sisters_circle'
-                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-950'
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        ? 'bg-purple-50/90 border-purple-500 ring-2 ring-purple-500/20 text-purple-950 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
                     }`}
                   >
-                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                      Sisters Circle
+                    <div className="font-bold text-[11px] sm:text-xs flex items-center gap-1.5 mb-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-600 shrink-0"></span>
+                      <span>Sisters Circle</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-tight">
+                    <p className="text-[9.5px] sm:text-[10px] text-slate-500 leading-tight">
                       Sisters Wing stream only
                     </p>
                   </button>
@@ -1497,17 +1497,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     type="button"
                     disabled={isResettingSeason}
                     onClick={() => setResetScope('all')}
-                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                    className={`p-2.5 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                       resetScope === 'all'
-                        ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950'
-                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                        ? 'bg-amber-50/90 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
                     }`}
                   >
-                    <div className="font-bold text-xs flex items-center gap-1.5 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-amber-600"></span>
-                      Both Sessions
+                    <div className="font-bold text-[11px] sm:text-xs flex items-center gap-1.5 mb-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0"></span>
+                      <span>Both Sessions</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-tight">
+                    <p className="text-[9.5px] sm:text-[10px] text-slate-500 leading-tight">
                       Full Academic Season Reset
                     </p>
                   </button>
@@ -1515,41 +1515,41 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               </div>
 
               {/* Explanatory Info Card based on chosen scope */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed space-y-1.5">
-                <p className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed space-y-1">
+                <p className="font-bold text-slate-900 flex items-center gap-1 text-[11px] sm:text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    {resetScope === 'weekly_usrah' && 'Reset Scope: Weekly Usrah (Brothers/Sisters)'}
-                    {resetScope === 'sisters_circle' && 'Reset Scope: Sisters Circle Usrah'}
-                    {resetScope === 'all' && 'Reset Scope: Complete Season (Both Streams)'}
+                    {resetScope === 'weekly_usrah' && 'Scope: Weekly Usrah (Brothers/Sisters)'}
+                    {resetScope === 'sisters_circle' && 'Scope: Sisters Circle Usrah'}
+                    {resetScope === 'all' && 'Scope: Complete Season (Both Streams)'}
                   </span>
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[10px] sm:text-[11px]">
                   {resetScope === 'weekly_usrah' && (
                     <>
-                      <li>Clears attendance marks for <strong>Weekly Usrah</strong> and starts a fresh active session.</li>
-                      <li><strong>Sisters Circle Usrah</strong> attendance marks will NOT be affected.</li>
-                      <li><strong>ALL registered member profiles</strong> remain permanently saved in your roster.</li>
+                      <li>Clears check-ins for <strong>Weekly Usrah</strong> for a fresh active session.</li>
+                      <li><strong>Sisters Circle Usrah</strong> marks remain completely untouched.</li>
+                      <li><strong>All member profiles</strong> remain permanently saved in your roster.</li>
                     </>
                   )}
                   {resetScope === 'sisters_circle' && (
                     <>
-                      <li>Clears attendance marks for <strong>Sisters Circle Usrah</strong> and starts a fresh active session.</li>
-                      <li><strong>Weekly Usrah (Brothers/Sisters)</strong> attendance marks will NOT be affected.</li>
-                      <li><strong>ALL registered sister profiles</strong> remain permanently saved in your roster.</li>
+                      <li>Clears check-ins for <strong>Sisters Circle Usrah</strong> for a fresh active session.</li>
+                      <li><strong>Weekly Usrah (Brothers/Sisters)</strong> marks remain completely untouched.</li>
+                      <li><strong>All registered sister profiles</strong> remain permanently saved in your roster.</li>
                     </>
                   )}
                   {resetScope === 'all' && (
                     <>
-                      <li>Clears attendance marks across <strong>both streams</strong> for a brand new academic season.</li>
-                      <li><strong>ALL member names (Brothers & Sisters)</strong> remain permanently saved in your roster.</li>
+                      <li>Clears check-ins across <strong>both streams</strong> for a brand new academic season.</li>
+                      <li><strong>All member profiles (Brothers & Sisters)</strong> remain permanently saved.</li>
                     </>
                   )}
                 </ul>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase mb-1">
                   {resetScope === 'all' ? 'New Season Title *' : 'Session / Season Title *'}
                 </label>
                 <input
@@ -1565,17 +1565,17 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       ? 'e.g. 2025/2026 MSSN Odonguyan Sisters Circle Session'
                       : 'e.g. 2026/2027 MSSN Odonguyan Academic Season'
                   }
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                  className="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
                     <KeyRound className="w-3.5 h-3.5 text-amber-700" />
                     Account Login Password *
                   </label>
-                  <span className="text-[10px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] sm:text-[10px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
                     Required
                   </span>
                 </div>
@@ -1590,14 +1590,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                       if (resetPasswordError) setResetPasswordError('');
                     }}
                     placeholder="Enter your account login password"
-                    className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50 disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full pl-3 pr-10 py-2 sm:pl-3.5 sm:pr-11 sm:py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono tracking-wider focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50/50 disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
                     disabled={isResettingSeason}
                     onClick={() => setShowResetPassword(!showResetPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors cursor-pointer"
+                    className="absolute right-2.5 top-2 sm:right-3 sm:top-2.5 text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors cursor-pointer"
                     title={showResetPassword ? 'Hide password' : 'Show password'}
                   >
                     {showResetPassword ? (
@@ -1607,12 +1607,12 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     )}
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
                   Please enter the password you used to log in to authorize resetting attendance check-ins.
                 </p>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-3 sm:pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   disabled={isResettingSeason}
@@ -1621,14 +1621,14 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
                     setResetPasswordError('');
                     setEnteredResetPassword('');
                   }}
-                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer disabled:opacity-50 text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isResettingSeason}
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs shadow-md cursor-pointer transition-transform transform active:scale-95 flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs shadow-md cursor-pointer transition-transform transform active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isResettingSeason ? (
                     <>
