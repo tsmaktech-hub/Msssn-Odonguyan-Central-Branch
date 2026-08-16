@@ -31,6 +31,8 @@ const KEYS = {
   SHEET_RESET_PASSWORD: 'mssn_sheet_reset_password_v1',
   LAST_SYNC: 'mssn_last_sync_log_v3',
   PORTAL_VIEW: 'mssn_portal_view_v3',
+  SELECTED_PROGRAM_ID: 'mssn_selected_program_id',
+  SELECTED_PROGRAM_TITLE: 'mssn_selected_program_title',
 };
 
 export const formatNaira = (amount: number): string => {
@@ -83,6 +85,18 @@ export const loadStoredData = () => {
     }
 
     let programs: Program[] = deduplicatedPrograms;
+
+    // Stable sort to ensure Weekly Usrah is canonical first active program in array
+    programs.sort((a, b) => {
+      // Completed programs after active
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      const aWeekly = a.title.toLowerCase().includes('weekly usrah');
+      const bWeekly = b.title.toLowerCase().includes('weekly usrah');
+      if (aWeekly && !bWeekly) return -1;
+      if (!aWeekly && bWeekly) return 1;
+      return 0;
+    });
 
     if (programs.length === 0) {
       programs = [...initialPrograms];

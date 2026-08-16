@@ -110,7 +110,27 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       localStorage.setItem('mssn_attendance_gender_tab', selectedGenderTab);
     } catch {}
   }, [selectedGenderTab]);
-  const [selectedProgramId, setSelectedProgramId] = useState<string>(programs[0]?.id || 'prog-1');
+
+  // Selected Program ID persistence across page refreshes
+  const [selectedProgramId, setSelectedProgramId] = useState<string>(() => {
+    try {
+      const savedId = localStorage.getItem('mssn_selected_program_id');
+      if (savedId && programs.some(p => p.id === savedId)) {
+        return savedId;
+      }
+      const savedTitle = localStorage.getItem('mssn_selected_program_title');
+      if (savedTitle) {
+        const match = programs.find(p => p.title.trim().toLowerCase() === savedTitle.trim().toLowerCase() && p.status !== 'completed') ||
+                      programs.find(p => p.title.trim().toLowerCase() === savedTitle.trim().toLowerCase());
+        if (match) return match.id;
+      }
+    } catch {}
+    // Default to Weekly Usrah (Brothers/Sisters) first if no stored preference
+    const weeklyUsrah = programs.find(p => p.title.toLowerCase().includes('weekly usrah') && p.status !== 'completed') ||
+                        programs.find(p => p.title.toLowerCase().includes('weekly usrah'));
+    return weeklyUsrah ? weeklyUsrah.id : (programs[0]?.id || 'prog-1');
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
@@ -222,12 +242,51 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
       }
     }
 
-    return uniqueList.length > 0 ? uniqueList : sourceList;
+    const resultList = uniqueList.length > 0 ? uniqueList : sourceList;
+
+    // Stable sort: Always put Weekly Usrah (Brothers/Sisters) first, followed by Sisters Circle
+    return [...resultList].sort((a, b) => {
+      const aWeekly = a.title.toLowerCase().includes('weekly usrah');
+      const bWeekly = b.title.toLowerCase().includes('weekly usrah');
+      if (aWeekly && !bWeekly) return -1;
+      if (!aWeekly && bWeekly) return 1;
+      return 0;
+    });
   }, [programs]);
 
-  // Active program & season objects
-  const activeProgram = activePrograms.find(p => p.id === selectedProgramId) || activePrograms[0] || programs[0];
+  // Active program & season objects (resolves from selectedProgramId, saved title preference, or canonical Weekly Usrah)
+  const activeProgram = useMemo(() => {
+    const byId = activePrograms.find(p => p.id === selectedProgramId);
+    if (byId) return byId;
+
+    try {
+      const savedTitle = localStorage.getItem('mssn_selected_program_title');
+      if (savedTitle) {
+        const byTitle = activePrograms.find(p => p.title.trim().toLowerCase() === savedTitle.trim().toLowerCase());
+        if (byTitle) return byTitle;
+      }
+    } catch {}
+
+    const weekly = activePrograms.find(p => p.title.toLowerCase().includes('weekly usrah'));
+    if (weekly) return weekly;
+
+    return activePrograms[0] || programs[0];
+  }, [activePrograms, selectedProgramId, programs]);
+
   const activeSeason = seasons.find(s => s.id === activeSeasonId) || seasons[0];
+
+  // Save selected program to localStorage whenever activeProgram resolves/changes
+  useEffect(() => {
+    try {
+      if (activeProgram) {
+        localStorage.setItem('mssn_selected_program_id', activeProgram.id);
+        localStorage.setItem('mssn_selected_program_title', activeProgram.title);
+        if (selectedProgramId !== activeProgram.id) {
+          setSelectedProgramId(activeProgram.id);
+        }
+      }
+    } catch {}
+  }, [activeProgram, selectedProgramId]);
 
   // Determine if current program is dedicated Sisters-only (e.g. Sisters Circle Usrah) and not a combined Brothers/Sisters program
   const isSistersOnlyProgram = Boolean(
