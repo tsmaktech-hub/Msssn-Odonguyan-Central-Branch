@@ -509,8 +509,88 @@ export default function App() {
     setTransactions(prev => [newTx, ...prev]);
   };
 
+  const handleUpdateTransaction = (id: string, updatedData: Partial<FinancialTransaction>) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedData } : t));
+  };
+
   const handleDeleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleSetAccountBalances = (targetIncome: number, targetExpense: number, note?: string) => {
+    const currentIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const currentExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const incomeDiff = targetIncome - currentIncome;
+    const expenseDiff = targetExpense - currentExpense;
+    const today = new Date().toISOString().slice(0, 10);
+    const newTxs: FinancialTransaction[] = [];
+
+    if (Math.abs(incomeDiff) > 0.001) {
+      if (incomeDiff > 0) {
+        newTxs.push({
+          id: `tx-${Date.now()}-inc-adj`,
+          type: 'income',
+          category: 'Donations & Sadakat',
+          amount: Math.round(incomeDiff * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Central Treasury',
+          description: note ? `${note} (Income Adjustment)` : 'Bank Account Income Reconciliation / Balance Adjustment',
+          uploadedBy: financeUser?.name || 'Accountant',
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        // Reduced income via reconciling expense or adjustment
+        newTxs.push({
+          id: `tx-${Date.now()}-inc-adj`,
+          type: 'expense',
+          category: 'Other Expense',
+          amount: Math.round(Math.abs(incomeDiff) * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Central Treasury Reconciliation',
+          description: note ? `${note} (Income Correction)` : 'Bank Income Reduction / Balance Correction',
+          uploadedBy: financeUser?.name || 'Accountant',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (Math.abs(expenseDiff) > 0.001) {
+      if (expenseDiff > 0) {
+        newTxs.push({
+          id: `tx-${Date.now() + 1}-exp-adj`,
+          type: 'expense',
+          category: 'Other Expense',
+          amount: Math.round(expenseDiff * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Central Expenditure Reconciliation',
+          description: note ? `${note} (Expense Adjustment)` : 'Expenditure Balance Adjustment / Opening Expense Reconciliation',
+          uploadedBy: financeUser?.name || 'Accountant',
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        // Reduced expense via reconciling income/refund entry
+        newTxs.push({
+          id: `tx-${Date.now() + 1}-exp-adj`,
+          type: 'income',
+          category: 'Other Income',
+          amount: Math.round(Math.abs(expenseDiff) * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Expenditure Refund / Correction',
+          description: note ? `${note} (Expense Correction)` : 'Expense Reduction / Expenditure Reversal Adjustment',
+          uploadedBy: financeUser?.name || 'Accountant',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (newTxs.length > 0) {
+      setTransactions(prev => [...newTxs, ...prev]);
+    }
   };
 
   return (
@@ -600,7 +680,9 @@ export default function App() {
           sheetResetPassword={sheetResetPassword}
           onUpdateSheetResetPassword={(newPwd) => setSheetResetPassword(newPwd)}
           onAddTransaction={handleAddTransaction}
+          onUpdateTransaction={handleUpdateTransaction}
           onDeleteTransaction={handleDeleteTransaction}
+          onSetAccountBalances={handleSetAccountBalances}
         />
       )}
 

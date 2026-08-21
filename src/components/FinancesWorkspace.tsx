@@ -30,7 +30,13 @@ import {
   Landmark,
   Receipt,
   FileText,
-  DollarSign
+  DollarSign,
+  Edit3,
+  SlidersHorizontal,
+  RefreshCw,
+  CheckCircle2,
+  Calculator,
+  Sparkles
 } from 'lucide-react';
 import { formatNaira, exportTransactionsToCSV } from '../lib/storage';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
@@ -50,7 +56,9 @@ interface FinancesWorkspaceProps {
 
   // Handlers
   onAddTransaction: (txData: Omit<FinancialTransaction, 'id' | 'createdAt'>) => void;
+  onUpdateTransaction?: (id: string, updatedData: Partial<FinancialTransaction>) => void;
   onDeleteTransaction: (id: string) => void;
+  onSetAccountBalances?: (targetIncome: number, targetExpense: number, note?: string) => void;
 }
 
 export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
@@ -64,7 +72,9 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   sheetResetPassword = '1234',
   onUpdateSheetResetPassword,
   onAddTransaction,
+  onUpdateTransaction,
   onDeleteTransaction,
+  onSetAccountBalances,
 }) => {
   const [activeTab, setActiveTab] = useState<FinanceTab>(() => {
     try {
@@ -95,6 +105,7 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   const [pinError, setPinError] = useState('');
 
   // Upload Form state
+  const [uploadSubMode, setUploadSubMode] = useState<'transaction' | 'edit_balances'>('transaction');
   const [txType, setTxType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -104,6 +115,13 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<any>('Bank Transfer');
   const [programId, setProgramId] = useState<string>('');
   const [referenceNo, setReferenceNo] = useState<string>('');
+
+  // Direct Balances Edit state (Total Income, Total Expenses, Net Account Balance)
+  const [editIncomeInput, setEditIncomeInput] = useState<string>('');
+  const [editExpenseInput, setEditExpenseInput] = useState<string>('');
+  const [editNetInput, setEditNetInput] = useState<string>('');
+  const [editReason, setEditReason] = useState<string>('');
+  const [balanceSuccessAlert, setBalanceSuccessAlert] = useState<string>('');
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,6 +139,105 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   const totalIncome = incomeList.reduce((s, t) => s + t.amount, 0);
   const totalExpense = expenseList.reduce((s, t) => s + t.amount, 0);
   const netBalance = totalIncome - totalExpense;
+
+  // Initialize or reset Direct Balance inputs with current totals
+  const handleOpenEditBalancesMode = () => {
+    setEditIncomeInput(totalIncome.toString());
+    setEditExpenseInput(totalExpense.toString());
+    setEditNetInput((totalIncome - totalExpense).toString());
+    setEditReason('');
+    setBalanceSuccessAlert('');
+    setUploadSubMode('edit_balances');
+  };
+
+  // Synchronize when total calculations change while in edit mode
+  useEffect(() => {
+    if (uploadSubMode === 'edit_balances' && !editIncomeInput && !editExpenseInput) {
+      setEditIncomeInput(totalIncome.toString());
+      setEditExpenseInput(totalExpense.toString());
+      setEditNetInput((totalIncome - totalExpense).toString());
+    }
+  }, [uploadSubMode, totalIncome, totalExpense]);
+
+  // Income Input Change handler in Balance Editor
+  const handleIncomeInputChange = (val: string) => {
+    setEditIncomeInput(val);
+    const inc = parseFloat(val) || 0;
+    const exp = parseFloat(editExpenseInput) || 0;
+    setEditNetInput((Math.round((inc - exp) * 100) / 100).toString());
+  };
+
+  // Expense Input Change handler in Balance Editor
+  const handleExpenseInputChange = (val: string) => {
+    setEditExpenseInput(val);
+    const inc = parseFloat(editIncomeInput) || 0;
+    const exp = parseFloat(val) || 0;
+    setEditNetInput((Math.round((inc - exp) * 100) / 100).toString());
+  };
+
+  // Net Balance Input Change handler in Balance Editor (auto-adjusts income)
+  const handleNetInputChange = (val: string) => {
+    setEditNetInput(val);
+    const net = parseFloat(val) || 0;
+    const exp = parseFloat(editExpenseInput) || 0;
+    setEditIncomeInput((Math.round((net + exp) * 100) / 100).toString());
+  };
+
+  // Save Direct Balances
+  const handleSaveDirectBalances = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetIncome = parseFloat(editIncomeInput);
+    const targetExpense = parseFloat(editExpenseInput);
+
+    if (isNaN(targetIncome) || isNaN(targetExpense) || targetIncome < 0 || targetExpense < 0) {
+      alert('Please enter valid positive numbers for Total Money In Bank (Income) and Total Amount Spent (Expenses).');
+      return;
+    }
+
+    if (onSetAccountBalances) {
+      onSetAccountBalances(
+        targetIncome, 
+        targetExpense, 
+        editReason.trim() || 'Accountant Balances Reconciliation & Manual Adjustment'
+      );
+    } else {
+      // Fallback reconciliation
+      const incomeDiff = targetIncome - totalIncome;
+      const expenseDiff = targetExpense - totalExpense;
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (Math.abs(incomeDiff) > 0.001) {
+        onAddTransaction({
+          type: incomeDiff > 0 ? 'income' : 'expense',
+          category: incomeDiff > 0 ? 'Donations & Sadakat' : 'Other Expense',
+          amount: Math.round(Math.abs(incomeDiff) * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Central Treasury',
+          description: editReason.trim() ? `${editReason.trim()} (Income Adjustment)` : 'Bank Account Income Reconciliation / Balance Adjustment',
+          uploadedBy: user.name,
+        });
+      }
+
+      if (Math.abs(expenseDiff) > 0.001) {
+        onAddTransaction({
+          type: expenseDiff > 0 ? 'expense' : 'income',
+          category: expenseDiff > 0 ? 'Other Expense' : 'Other Income',
+          amount: Math.round(Math.abs(expenseDiff) * 100) / 100,
+          date: today,
+          paymentMethod: 'Bank Transfer',
+          payeeOrDonor: 'MSSN Central Expenditure Reconciliation',
+          description: editReason.trim() ? `${editReason.trim()} (Expense Adjustment)` : 'Expenditure Balance Adjustment',
+          uploadedBy: user.name,
+        });
+      }
+    }
+
+    setBalanceSuccessAlert('Account Balances (Total Income, Total Expenses, and Net Balance) updated and applied successfully!');
+    setTimeout(() => {
+      setBalanceSuccessAlert('');
+    }, 4000);
+  };
 
   // Verify Accountant Security PIN
   const handleVerifyPin = (e: React.FormEvent) => {
@@ -569,191 +686,457 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
                 </form>
               </div>
             ) : (
-              /* UNLOCKED ACCOUNTANT UPLOAD FORM */
-              <div className="space-y-6">
+              /* UNLOCKED ACCOUNTANT UPLOAD & BALANCE MANAGEMENT */
+              <div className="space-y-8">
                 
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                {/* Header & Verification Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                      <Plus className="w-5 h-5" />
+                    <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shadow-sm">
+                      <SlidersHorizontal className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Accountant Record Upload</h3>
-                      <p className="text-xs text-slate-500">Upload income or spent money with detailed descriptions</p>
+                      <h3 className="text-lg font-extrabold text-slate-900">Accountant Record & Balances Center</h3>
+                      <p className="text-xs text-slate-500">Record transactions or directly edit Net Balance, Income, and Expenses</p>
                     </div>
                   </div>
 
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
-                    <Unlock className="w-3.5 h-3.5" /> PIN Verified
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 shadow-sm">
+                      <Unlock className="w-3.5 h-3.5" /> PIN Verified
+                    </span>
+                  </div>
                 </div>
 
-                <form onSubmit={handleSaveTransaction} className="space-y-6">
-                  
-                  {/* Transaction Type Radio Selector */}
-                  <div className="grid grid-cols-2 gap-4 bg-slate-100 p-1.5 rounded-2xl">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTxType('expense');
-                        setCategory('Venue Rental & PA System');
-                      }}
-                      className={`py-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
-                        txType === 'expense'
-                          ? 'bg-rose-600 text-white shadow-md'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <TrendingDown className="w-4 h-4" />
-                      <span>Amount Spent (Expense)</span>
-                    </button>
+                {/* SUCCESS NOTIFICATION */}
+                {balanceSuccessAlert && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-900 border border-emerald-200 flex items-start gap-3 shadow-sm animate-in fade-in">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold">{balanceSuccessAlert}</p>
+                      <p className="text-xs text-emerald-700 mt-0.5">All finance reports and account summary cards have been updated with your new balance totals.</p>
+                    </div>
+                  </div>
+                )}
 
+                {/* 3 LIVE EDITABLE STAT CARDS (INCOME, EXPENSE, NET BALANCE) */}
+                <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="w-4 h-4 text-slate-600" />
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Current Account Totals
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setTxType('income');
-                        setCategory('Weekly Usrah Collection');
-                      }}
-                      className={`py-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
-                        txType === 'income'
-                          ? 'bg-emerald-600 text-white shadow-md'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      onClick={handleOpenEditBalancesMode}
+                      className="text-xs font-extrabold text-amber-700 hover:text-amber-800 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 transition-colors"
                     >
-                      <TrendingUp className="w-4 h-4" />
-                      <span>Money Entering Bank (Income)</span>
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Balances Directly</span>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     
-                    {/* Amount in Naira */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        Amount in Naira (₦) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="e.g. 50000"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none"
-                      />
+                    {/* 1. Total Money In Bank (Income) */}
+                    <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                          <TrendingUp className="w-3.5 h-3.5" /> Total Income
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleOpenEditBalancesMode}
+                          className="text-[11px] text-emerald-700 hover:underline font-semibold"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <div className="text-lg font-black text-slate-900">
+                        {formatNaira(totalIncome)}
+                      </div>
+                      <span className="text-[11px] text-slate-400 mt-1">Total Money In Bank</span>
                     </div>
 
-                    {/* Date */}
+                    {/* 2. Total Amount Spent (Expenses) */}
+                    <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-rose-700 flex items-center gap-1">
+                          <TrendingDown className="w-3.5 h-3.5" /> Total Spent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleOpenEditBalancesMode}
+                          className="text-[11px] text-rose-700 hover:underline font-semibold"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <div className="text-lg font-black text-slate-900">
+                        {formatNaira(totalExpense)}
+                      </div>
+                      <span className="text-[11px] text-slate-400 mt-1">Total Expenses</span>
+                    </div>
+
+                    {/* 3. Net Account Balance */}
+                    <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-amber-700 flex items-center gap-1">
+                          <Wallet className="w-3.5 h-3.5" /> Net Balance
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleOpenEditBalancesMode}
+                          className="text-[11px] text-amber-700 hover:underline font-semibold"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <div className={`text-lg font-black ${netBalance >= 0 ? 'text-slate-900' : 'text-rose-700'}`}>
+                        {formatNaira(netBalance)}
+                      </div>
+                      <span className="text-[11px] text-slate-400 mt-1">Net Account Balance</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* SUB-MODE NAVIGATION BUTTONS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-100 p-1.5 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setUploadSubMode('transaction')}
+                    className={`py-3 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                      uploadSubMode === 'transaction'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Plus className="w-4 h-4 text-amber-600" />
+                    <span>Upload Single Transaction</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenEditBalancesMode}
+                    className={`py-3 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                      uploadSubMode === 'edit_balances'
+                        ? 'bg-amber-600 text-white shadow-md'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Edit Balances (Net Balance, Income, Expenses)</span>
+                  </button>
+                </div>
+
+                {/* SUB-VIEW A: DIRECT BALANCES & OPENING TOTALS EDITOR */}
+                {uploadSubMode === 'edit_balances' ? (
+                  <div className="bg-amber-50/40 rounded-3xl p-6 border border-amber-200/80 space-y-6">
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-4">
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <SlidersHorizontal className="w-4 h-4 text-amber-600" />
+                          Direct Account Balances & Opening Totals Editor
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Directly type and adjust your Total Money In Bank, Total Amount Spent, or Net Account Balance
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditIncomeInput(totalIncome.toString());
+                          setEditExpenseInput(totalExpense.toString());
+                          setEditNetInput((totalIncome - totalExpense).toString());
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-slate-500" /> Reset to Current
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveDirectBalances} className="space-y-6">
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        
+                        {/* 1. Total Money In Bank (Income) Field */}
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                          <label className="block text-xs font-bold text-emerald-800 uppercase">
+                            Total Money In Bank (Income) (₦) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={editIncomeInput}
+                            onChange={(e) => handleIncomeInputChange(e.target.value)}
+                            placeholder="e.g. 500000"
+                            className="w-full px-4 py-3 rounded-xl border border-emerald-300 text-lg font-black text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                          />
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                            <span>Current: <strong className="text-slate-700">{formatNaira(totalIncome)}</strong></span>
+                            {parseFloat(editIncomeInput) !== totalIncome && !isNaN(parseFloat(editIncomeInput)) && (
+                              <span className={`font-bold ${parseFloat(editIncomeInput) > totalIncome ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {parseFloat(editIncomeInput) > totalIncome ? '+' : ''}{formatNaira(parseFloat(editIncomeInput) - totalIncome)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Total Amount Spent (Expenses) Field */}
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                          <label className="block text-xs font-bold text-rose-800 uppercase">
+                            Total Amount Spent (Expenses) (₦) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={editExpenseInput}
+                            onChange={(e) => handleExpenseInputChange(e.target.value)}
+                            placeholder="e.g. 150000"
+                            className="w-full px-4 py-3 rounded-xl border border-rose-300 text-lg font-black text-slate-900 focus:ring-2 focus:ring-rose-500 outline-none"
+                          />
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                            <span>Current: <strong className="text-slate-700">{formatNaira(totalExpense)}</strong></span>
+                            {parseFloat(editExpenseInput) !== totalExpense && !isNaN(parseFloat(editExpenseInput)) && (
+                              <span className={`font-bold ${parseFloat(editExpenseInput) > totalExpense ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                {parseFloat(editExpenseInput) > totalExpense ? '+' : ''}{formatNaira(parseFloat(editExpenseInput) - totalExpense)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. Net Account Balance Field */}
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                          <label className="block text-xs font-bold text-amber-800 uppercase">
+                            Net Account Balance (₦) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={editNetInput}
+                            onChange={(e) => handleNetInputChange(e.target.value)}
+                            placeholder="e.g. 350000"
+                            className="w-full px-4 py-3 rounded-xl border border-amber-300 text-lg font-black text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
+                          />
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                            <span>Current: <strong className="text-slate-700">{formatNaira(netBalance)}</strong></span>
+                            <span className="text-[10px] text-slate-400">Auto-synced (Income - Expenses)</span>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* Optional Reconciliation Note */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                          Adjustment / Reconciliation Reason (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={editReason}
+                          onChange={(e) => setEditReason(e.target.value)}
+                          placeholder="e.g. Account opening balance setup / Bank statement reconciliation adjustment"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                        />
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setUploadSubMode('transaction')}
+                          className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm transition-colors"
+                        >
+                          Cancel / Back to Transaction Form
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2"
+                        >
+                          <Check className="w-4 h-4" />
+                          Save & Apply Updated Balances
+                        </button>
+                      </div>
+
+                    </form>
+                  </div>
+                ) : (
+                  /* SUB-VIEW B: SINGLE TRANSACTION UPLOAD FORM */
+                  <form onSubmit={handleSaveTransaction} className="space-y-6">
+                    
+                    {/* Transaction Type Radio Selector */}
+                    <div className="grid grid-cols-2 gap-4 bg-slate-100 p-1.5 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTxType('expense');
+                          setCategory('Venue Rental & PA System');
+                        }}
+                        className={`py-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                          txType === 'expense'
+                            ? 'bg-rose-600 text-white shadow-md'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <TrendingDown className="w-4 h-4" />
+                        <span>Amount Spent (Expense)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTxType('income');
+                          setCategory('Weekly Usrah Collection');
+                        }}
+                        className={`py-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all ${
+                          txType === 'income'
+                            ? 'bg-emerald-600 text-white shadow-md'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Money Entering Bank (Income)</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      
+                      {/* Amount in Naira */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                          Amount in Naira (₦) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          placeholder="e.g. 50000"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                        />
+                      </div>
+
+                      {/* Date */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                          Date *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                        />
+                      </div>
+
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      
+                      {/* Category */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                          Category *
+                        </label>
+                        <select
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white font-semibold"
+                        >
+                          {txType === 'income' ? (
+                            <>
+                              <option value="Weekly Usrah Collection">Weekly Usrah Collection</option>
+                              <option value="Annual Dues">Annual Dues</option>
+                              <option value="Program Sponsorship">Program Sponsorship</option>
+                              <option value="Donations & Sadakat">Donations & Sadakat</option>
+                              <option value="Grants & Launching">Grants & Launching</option>
+                              <option value="Other Income">Other Income</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Venue Rental & PA System">Venue Rental & PA System</option>
+                              <option value="Refreshment & Food">Refreshment & Food</option>
+                              <option value="Printing, Banners & Stationery">Printing, Banners & Stationery</option>
+                              <option value="Welfare & Member Support">Welfare & Member Support</option>
+                              <option value="Transport & Logistics">Transport & Logistics</option>
+                              <option value="Honorarium & Guest Lecturer">Honorarium & Guest Lecturer</option>
+                              <option value="Equipment & Maintenance">Equipment & Maintenance</option>
+                              <option value="Other Expense">Other Expense</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Source / Payee */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                          {txType === 'income' ? 'Donor / Payer Source *' : 'Payee / Vendor Name *'}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={payeeOrDonor}
+                          onChange={(e) => setPayeeOrDonor(e.target.value)}
+                          placeholder={txType === 'income' ? "e.g. Usrah Members or Patron Alhaji Rasheed" : "e.g. Odonguyan Central Mosque Management"}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                        />
+                      </div>
+
+                    </div>
+
+                    {/* Detailed Description */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        Date *
+                        Detailed Description of What Money Was Used For / Received From *
                       </label>
-                      <input
-                        type="date"
+                      <textarea
+                        rows={3}
                         required
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="e.g. Payment for hall rental, sound amplifier, generator fuel, and microphone rental for Sunday Usrah."
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                       />
                     </div>
 
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    
-                    {/* Category */}
                     <div>
+                      {/* Payment Method */}
                       <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        Category *
+                        Payment Method
                       </label>
                       <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white font-semibold"
                       >
-                        {txType === 'income' ? (
-                          <>
-                            <option value="Weekly Usrah Collection">Weekly Usrah Collection</option>
-                            <option value="Annual Dues">Annual Dues</option>
-                            <option value="Program Sponsorship">Program Sponsorship</option>
-                            <option value="Donations & Sadakat">Donations & Sadakat</option>
-                            <option value="Grants & Launching">Grants & Launching</option>
-                            <option value="Other Income">Other Income</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Venue Rental & PA System">Venue Rental & PA System</option>
-                            <option value="Refreshment & Food">Refreshment & Food</option>
-                            <option value="Printing, Banners & Stationery">Printing, Banners & Stationery</option>
-                            <option value="Welfare & Member Support">Welfare & Member Support</option>
-                            <option value="Transport & Logistics">Transport & Logistics</option>
-                            <option value="Honorarium & Guest Lecturer">Honorarium & Guest Lecturer</option>
-                            <option value="Equipment & Maintenance">Equipment & Maintenance</option>
-                            <option value="Other Expense">Other Expense</option>
-                          </>
-                        )}
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="POS">POS</option>
+                        <option value="Cheque">Cheque</option>
                       </select>
                     </div>
 
-                    {/* Source / Payee */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        {txType === 'income' ? 'Donor / Payer Source *' : 'Payee / Vendor Name *'}
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={payeeOrDonor}
-                        onChange={(e) => setPayeeOrDonor(e.target.value)}
-                        placeholder={txType === 'income' ? "e.g. Usrah Members or Patron Alhaji Rasheed" : "e.g. Odonguyan Central Mosque Management"}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-                      />
+                    <div className="pt-4 flex items-center justify-end gap-3">
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm shadow-lg shadow-amber-600/30"
+                      >
+                        Upload Financial Record
+                      </button>
                     </div>
 
-                  </div>
-
-                  {/* Detailed Description */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                      Detailed Description of What Money Was Used For / Received From *
-                    </label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="e.g. Payment for hall rental, sound amplifier, generator fuel, and microphone rental for Sunday Usrah."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    {/* Payment Method */}
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                      Payment Method
-                    </label>
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white font-semibold"
-                    >
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Cash">Cash</option>
-                      <option value="POS">POS</option>
-                      <option value="Cheque">Cheque</option>
-                    </select>
-                  </div>
-
-                  <div className="pt-4 flex items-center justify-end gap-3">
-                    <button
-                      type="submit"
-                      className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm shadow-lg shadow-amber-600/30"
-                    >
-                      Upload Financial Record
-                    </button>
-                  </div>
-
-                </form>
+                  </form>
+                )}
 
               </div>
             )}
