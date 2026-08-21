@@ -727,39 +727,21 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    
+                  <div>
                     {/* Payment Method */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        Payment Method
-                      </label>
-                      <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white"
-                      >
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Cash">Cash</option>
-                        <option value="POS">POS</option>
-                        <option value="Cheque">Cheque</option>
-                      </select>
-                    </div>
-
-                    {/* Receipt / Ref No */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        Receipt / Reference Number
-                      </label>
-                      <input
-                        type="text"
-                        value={referenceNo}
-                        onChange={(e) => setReferenceNo(e.target.value)}
-                        placeholder="e.g. TRF-BANK-9982"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-                      />
-                    </div>
-
+                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                      Payment Method
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white font-semibold"
+                    >
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Cash">Cash</option>
+                      <option value="POS">POS</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
                   </div>
 
                   <div className="pt-4 flex items-center justify-end gap-3">
