@@ -39,7 +39,11 @@ import {
   Lock,
   CalendarDays,
   History,
-  Loader2
+  Loader2,
+  Database,
+  GitMerge,
+  Smartphone,
+  Server
 } from 'lucide-react';
 import { exportAttendanceToCSV } from '../lib/storage';
 import { MemberAttendanceHistoryModal } from './MemberAttendanceHistoryModal';
@@ -71,6 +75,13 @@ interface AttendanceWorkspaceProps {
   onMarkAllPresent: (programId: string, genderFilter?: GenderType) => void;
   onClearAttendance: (programId: string) => void;
   onUpdateProgramDate?: (programId: string, newDate: string) => string | void;
+
+  // Cloud Sync & Multi-Device Merge
+  onCloudSyncAndMerge?: () => Promise<{ success: boolean; message: string; addedFromCloudCount?: number }>;
+  isCloudSyncing?: boolean;
+  cloudSyncStatus?: { ok: boolean; message: string; lastSyncTime?: string } | null;
+  isSupabaseConfigured?: boolean;
+  onOpenSupabaseModal?: () => void;
 }
 
 export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
@@ -94,6 +105,11 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
   onMarkAllPresent,
   onClearAttendance,
   onUpdateProgramDate,
+  onCloudSyncAndMerge,
+  isCloudSyncing = false,
+  cloudSyncStatus,
+  isSupabaseConfigured = false,
+  onOpenSupabaseModal,
 }) => {
   const [selectedGenderTab, setSelectedGenderTab] = useState<'brothers' | 'sisters' | 'all'>(() => {
     try {
@@ -441,6 +457,29 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
     setIsAddMemberOpen(false);
   };
 
+  // Cloud Multi-device Merge state
+  const [cloudMergeFeedback, setCloudMergeFeedback] = useState<{
+    show: boolean;
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  const handleTriggerCloudMerge = async () => {
+    if (!onCloudSyncAndMerge) {
+      if (onOpenSupabaseModal) onOpenSupabaseModal();
+      return;
+    }
+    const res = await onCloudSyncAndMerge();
+    setCloudMergeFeedback({
+      show: true,
+      success: res.success,
+      message: res.message
+    });
+    setTimeout(() => {
+      setCloudMergeFeedback(prev => prev ? { ...prev, show: false } : null);
+    }, 6000);
+  };
+
   // Handle Sync Button
   const handleSyncClick = () => {
     if (isSyncing) return;
@@ -532,8 +571,8 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
           </div>
 
           {/* Logged in Secretary info & Logout */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:flex flex-col text-right">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            <div className="hidden md:flex flex-col text-right pr-1">
               <span className="text-[10px] sm:text-xs text-emerald-200">Logged in Officer</span>
               <span className="text-xs font-bold text-white flex items-center gap-1">
                 <UserCheck className="w-3.5 h-3.5 text-amber-400" />
@@ -541,6 +580,44 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
               </span>
             </div>
 
+            {/* Cloud Sync Status / Trigger Button */}
+            <button
+              onClick={handleTriggerCloudMerge}
+              disabled={isCloudSyncing}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer disabled:opacity-60 ${
+                cloudSyncStatus?.ok
+                  ? 'bg-teal-800/80 hover:bg-teal-700 text-teal-100 border-teal-600/50'
+                  : 'bg-amber-900/60 hover:bg-amber-800 text-amber-200 border-amber-600/50'
+              }`}
+              title="Synchronize and merge all members across laptop & phone"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-teal-300' : 'text-teal-300'}`} />
+              <span className="hidden sm:inline">
+                {isCloudSyncing ? 'Merging...' : 'Merge Cloud Data'}
+              </span>
+            </button>
+
+            {/* Supabase Database Settings */}
+            <button
+              onClick={onOpenSupabaseModal}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-700/50 cursor-pointer"
+              title="Cloud Database Settings & Schema"
+            >
+              <Database className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden lg:inline">Database</span>
+            </button>
+
+            {/* Back to Portal Switcher */}
+            <button
+              onClick={onBackToPortal}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-700/50 cursor-pointer"
+              title="Switch Portal"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Portals</span>
+            </button>
+
+            {/* Logout */}
             <button
               onClick={() => setIsLogoutModalOpen(true)}
               className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700/50 cursor-pointer"
@@ -557,6 +634,29 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
 
       {/* Main Body Container */}
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+
+        {/* Cloud Merge Toast Alert */}
+        {cloudMergeFeedback?.show && (
+          <div className={`fixed bottom-6 left-4 sm:left-6 z-50 text-white px-4 py-3 sm:px-5 sm:py-4 rounded-2xl shadow-2xl border-2 flex items-center gap-3 animate-in slide-in-from-bottom-5 max-w-[90vw] ${
+            cloudMergeFeedback.success 
+              ? 'bg-slate-950 border-teal-500' 
+              : 'bg-rose-950 border-rose-500'
+          }`}>
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold shrink-0 shadow-sm ${
+              cloudMergeFeedback.success ? 'bg-teal-500 text-white' : 'bg-rose-500 text-white'
+            }`}>
+              {cloudMergeFeedback.success ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />}
+            </div>
+            <div>
+              <p className={`font-bold text-xs sm:text-sm ${cloudMergeFeedback.success ? 'text-teal-300' : 'text-rose-300'}`}>
+                {cloudMergeFeedback.success ? 'Cloud Database Synced & Merged!' : 'Sync Notice'}
+              </p>
+              <p className="text-[11px] sm:text-xs text-slate-300">
+                {cloudMergeFeedback.message}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Sync Toast Alert */}
         {showSyncToast && (
@@ -601,31 +701,44 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
         </div>
 
 
-        {/* Action Toolbar (Sync Button, Add Member, Export CSV) */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+        {/* Action Toolbar (Sync Button, Merge Cloud Data, Add Member, Export CSV) */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm border border-slate-200 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4">
           
-          {/* SYNC ATTENDANCE SHEET BUTTON */}
-          <button
-            onClick={handleSyncClick}
-            disabled={isSyncing}
-            className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-transform transform active:scale-95 disabled:opacity-85 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing Attendance Sheet (2s)...' : 'Sync Attendance Sheet'}</span>
-            {lastSync && !isSyncing && (
-              <span className="text-[10px] sm:text-xs font-normal opacity-80 border-l border-emerald-400/40 pl-2">
-                Last: {new Date(lastSync.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            {/* SYNC ATTENDANCE SHEET BUTTON */}
+            <button
+              onClick={handleSyncClick}
+              disabled={isSyncing}
+              className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-transform transform active:scale-95 disabled:opacity-85 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing (2s)...' : 'Sync Attendance Sheet'}</span>
+              {lastSync && !isSyncing && (
+                <span className="text-[10px] sm:text-xs font-normal opacity-80 border-l border-emerald-400/40 pl-2">
+                  {new Date(lastSync.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </button>
+
+            {/* MERGE CLOUD & PHONE DATA BUTTON */}
+            <button
+              onClick={handleTriggerCloudMerge}
+              disabled={isCloudSyncing}
+              className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-900 via-teal-950 to-emerald-950 hover:from-black hover:to-slate-900 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-transform transform active:scale-95 disabled:opacity-70 cursor-pointer border border-teal-500/40"
+              title="Merge all members added on Laptop and Phone via Cloud"
+            >
+              <GitMerge className={`w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-400 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+              <span>{isCloudSyncing ? 'Merging Multi-Device Data...' : 'Merge Laptop & Phone Data'}</span>
+            </button>
+          </div>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto justify-end">
             
             {/* ADD NEW MEMBER BUTTON */}
             <button
               onClick={() => setIsAddMemberOpen(true)}
-              className="flex-1 sm:flex-initial px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center justify-center gap-1.5 transition-colors"
+              className="flex-1 sm:flex-initial px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-700" />
               <span>Update New Member</span>
@@ -634,7 +747,7 @@ export const AttendanceWorkspace: React.FC<AttendanceWorkspaceProps> = ({
             {/* EXPORT CSV */}
             <button
               onClick={() => exportAttendanceToCSV(attendance, attendees, programs)}
-              className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+              className="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               title="Download Attendance Sheet as CSV"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />

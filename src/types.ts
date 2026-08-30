@@ -16,6 +16,7 @@ export interface Attendee {
   category: MemberCategory;
   role?: string;
   institution?: string;
+  organization?: string;
   regNo?: string;
   notes?: string;
   createdAt: string;
@@ -103,7 +104,7 @@ export interface FinancialTransaction {
   date: string; // YYYY-MM-DD
   paymentMethod: 'Bank Transfer' | 'Cash' | 'POS' | 'Cheque' | 'Credit Card' | 'Check' | 'Digital Wallet' | 'Other';
   payeeOrDonor: string;
-  description: string; // Details of money spent or received
+  description?: string; // Details of money spent or received
   referenceNo?: string;
   uploadedBy?: string;
   notes?: string;

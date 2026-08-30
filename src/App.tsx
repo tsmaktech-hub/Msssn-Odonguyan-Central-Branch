@@ -12,6 +12,11 @@ import {
   SyncLog
 } from './types';
 import { loadStoredData, saveStoredData } from './lib/storage';
+import { 
+  isSupabaseConfigured, 
+  syncAndMergeWithCloud, 
+  checkSupabaseHealth 
+} from './lib/supabase';
 
 import { LandingPortal } from './components/LandingPortal';
 import { AuthModal } from './components/AuthModal';
@@ -20,12 +25,15 @@ import { FinancesWorkspace } from './components/FinancesWorkspace';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 export default function App() {
+  // Synchronously load stored data on initial mount to prevent empty flashes or overwriting storage
+  const [initialData] = useState(() => loadStoredData());
+
   // Main Navigation View (persists active page across browser refresh)
   const [portalView, setPortalView] = useState<MainPortalView>(() => {
     try {
-      const savedView = localStorage.getItem('mssn_portal_view_v3') as MainPortalView | null;
-      const attAuth = localStorage.getItem('mssn_auth_attendance_officer');
-      const finAuth = localStorage.getItem('mssn_auth_accountant');
+      const savedView = initialData.portalView;
+      const attAuth = initialData.attendanceUser;
+      const finAuth = initialData.financeUser;
 
       if (savedView === 'attendance_workspace' && attAuth) return 'attendance_workspace';
       if (savedView === 'finances_workspace' && finAuth) return 'finances_workspace';
@@ -35,58 +43,73 @@ export default function App() {
 
       if (attAuth && !finAuth) return 'attendance_workspace';
       if (finAuth && !attAuth) return 'finances_workspace';
-      return savedView || 'landing';
+      return 'landing';
     } catch {
       return 'landing';
     }
   });
 
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<{
+    ok: boolean;
+    message: string;
+    lastSyncTime?: string;
+  } | null>(null);
 
-  // Core App Data
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [attendees, setAttendees] = useState<Attendee[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [activeSeasonId, setActiveSeasonId] = useState<string>('season-1');
-  const [users, setUsers] = useState<UserAccount[]>([]);
+  // Core App Data initialized synchronously with stored data
+  const [programs, setPrograms] = useState<Program[]>(() => initialData.programs);
+  const [attendees, setAttendees] = useState<Attendee[]>(() => initialData.attendees);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => initialData.attendance);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>(() => initialData.transactions);
+  const [seasons, setSeasons] = useState<Season[]>(() => initialData.seasons);
+  const [activeSeasonId, setActiveSeasonId] = useState<string>(() => initialData.activeSeasonId);
+  const [users, setUsers] = useState<UserAccount[]>(() => initialData.users);
 
   // Auth Users
-  const [attendanceUser, setAttendanceUser] = useState<UserAccount | null>(null);
-  const [financeUser, setFinanceUser] = useState<UserAccount | null>(null);
+  const [attendanceUser, setAttendanceUser] = useState<UserAccount | null>(() => initialData.attendanceUser);
+  const [financeUser, setFinanceUser] = useState<UserAccount | null>(() => initialData.financeUser);
 
   // Security PIN & Sync Logs
-  const [accountantPin, setAccountantPin] = useState<string>('1234');
-  const [sheetResetPassword, setSheetResetPassword] = useState<string>('1234');
-  const [lastSync, setLastSync] = useState<SyncLog | null>(null);
+  const [accountantPin, setAccountantPin] = useState<string>(() => initialData.accountantPin || '1234');
+  const [sheetResetPassword, setSheetResetPassword] = useState<string>(() => initialData.sheetResetPassword || '1234');
+  const [lastSync, setLastSync] = useState<SyncLog | null>(() => initialData.lastSync);
 
-  // Initial Data Load
+  // Cloud sync verification on mount
   useEffect(() => {
-    const loaded = loadStoredData();
-    setPrograms(loaded.programs);
-    setAttendees(loaded.attendees);
-    setAttendance(loaded.attendance);
-    setTransactions(loaded.transactions);
-    setSeasons(loaded.seasons);
-    setActiveSeasonId(loaded.activeSeasonId);
-    setUsers(loaded.users);
-    setAttendanceUser(loaded.attendanceUser);
-    setFinanceUser(loaded.financeUser);
-    setAccountantPin(loaded.accountantPin);
-    setSheetResetPassword(loaded.sheetResetPassword || '1234');
-    setLastSync(loaded.lastSync);
-
-    if (loaded.portalView) {
-      if (loaded.portalView === 'attendance_workspace' && loaded.attendanceUser) {
-        setPortalView('attendance_workspace');
-      } else if (loaded.portalView === 'finances_workspace' && loaded.financeUser) {
-        setPortalView('finances_workspace');
-      } else if (loaded.portalView === 'attendance_auth' || loaded.portalView === 'finances_auth') {
-        setPortalView(loaded.portalView);
-      } else if (loaded.portalView === 'landing') {
-        setPortalView('landing');
-      }
+    // Auto check Supabase health and pull/merge on startup if configured
+    if (isSupabaseConfigured) {
+      checkSupabaseHealth().then(res => {
+        if (res.ok) {
+          syncAndMergeWithCloud({
+            attendees: initialData.attendees,
+            programs: initialData.programs,
+            attendance: initialData.attendance,
+            transactions: initialData.transactions,
+            seasons: initialData.seasons,
+            users: initialData.users,
+          }).then(syncRes => {
+            if (syncRes.success && syncRes.mergedData) {
+              setAttendees(syncRes.mergedData.attendees);
+              setPrograms(syncRes.mergedData.programs);
+              setAttendance(syncRes.mergedData.attendance);
+              setTransactions(syncRes.mergedData.transactions);
+              setSeasons(syncRes.mergedData.seasons);
+              setUsers(syncRes.mergedData.users);
+              setCloudSyncStatus({
+                ok: true,
+                message: syncRes.message,
+                lastSyncTime: new Date().toLocaleTimeString(),
+              });
+            }
+          }).catch(() => {});
+        } else {
+          setCloudSyncStatus({
+            ok: false,
+            message: res.message
+          });
+        }
+      }).catch(() => {});
     }
   }, []);
 
@@ -593,6 +616,49 @@ export default function App() {
     }
   };
 
+  // Cloud Sync & Multi-Device Merge Handler
+  const handleCloudSyncAndMerge = async (): Promise<{ success: boolean; message: string; addedFromCloudCount?: number }> => {
+    setIsCloudSyncing(true);
+    try {
+      const result = await syncAndMergeWithCloud({
+        attendees,
+        programs,
+        attendance,
+        transactions,
+        seasons,
+        users,
+      });
+
+      if (result.success && result.mergedData) {
+        setAttendees(result.mergedData.attendees);
+        setPrograms(result.mergedData.programs);
+        setAttendance(result.mergedData.attendance);
+        setTransactions(result.mergedData.transactions);
+        setSeasons(result.mergedData.seasons);
+        setUsers(result.mergedData.users);
+
+        setCloudSyncStatus({
+          ok: true,
+          message: result.message,
+          lastSyncTime: new Date().toLocaleTimeString(),
+        });
+        return { success: true, message: result.message, addedFromCloudCount: result.addedFromCloudCount };
+      } else {
+        setCloudSyncStatus({
+          ok: false,
+          message: result.message,
+        });
+        return { success: false, message: result.message };
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Database synchronization failed.';
+      setCloudSyncStatus({ ok: false, message: msg });
+      return { success: false, message: msg };
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans antialiased text-slate-900">
       
@@ -611,10 +677,12 @@ export default function App() {
       <SupabaseConfigModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
+        onTriggerCloudMerge={handleCloudSyncAndMerge}
+        isCloudSyncing={isCloudSyncing}
       />
 
       {/* 2. ATTENDANCE AUTHENTICATION (SIGN UP & LOGIN) */}
-      {portalView === 'attendance_auth' && (
+      {(portalView === 'attendance_auth' || (portalView === 'attendance_workspace' && !attendanceUser)) && (
         <AuthModal
           portalType="attendance"
           onLoginSuccess={handleAttendanceLoginSuccess}
@@ -650,11 +718,16 @@ export default function App() {
           onMarkAllPresent={handleMarkAllPresent}
           onClearAttendance={handleClearAttendance}
           onUpdateProgramDate={handleUpdateProgramDate}
+          onCloudSyncAndMerge={handleCloudSyncAndMerge}
+          isCloudSyncing={isCloudSyncing}
+          cloudSyncStatus={cloudSyncStatus}
+          isSupabaseConfigured={isSupabaseConfigured}
+          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         />
       )}
 
       {/* 4. FINANCES AUTHENTICATION (SIGN UP & LOGIN) */}
-      {portalView === 'finances_auth' && (
+      {(portalView === 'finances_auth' || (portalView === 'finances_workspace' && !financeUser)) && (
         <AuthModal
           portalType="finances"
           onLoginSuccess={handleFinanceLoginSuccess}
@@ -683,6 +756,26 @@ export default function App() {
           onUpdateTransaction={handleUpdateTransaction}
           onDeleteTransaction={handleDeleteTransaction}
           onSetAccountBalances={handleSetAccountBalances}
+          onCloudSyncAndMerge={handleCloudSyncAndMerge}
+          isCloudSyncing={isCloudSyncing}
+          cloudSyncStatus={cloudSyncStatus}
+          isSupabaseConfigured={isSupabaseConfigured}
+          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        />
+      )}
+
+      {/* 6. GLOBAL FALLBACK: IF NO VIEW MATCHES, RENDER LANDING PORTAL */}
+      {portalView !== 'landing' &&
+       portalView !== 'attendance_auth' &&
+       portalView !== 'attendance_workspace' &&
+       portalView !== 'finances_auth' &&
+       portalView !== 'finances_workspace' && (
+        <LandingPortal
+          onSelectAttendance={handleSelectAttendanceTile}
+          onSelectFinances={handleSelectFinancesTile}
+          attendanceUser={attendanceUser}
+          financeUser={financeUser}
+          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         />
       )}
 
