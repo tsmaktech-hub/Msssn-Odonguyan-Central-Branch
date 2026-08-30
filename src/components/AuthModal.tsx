@@ -7,27 +7,28 @@ import {
   ArrowLeft, 
   ShieldAlert, 
   KeyRound, 
-  Sparkles,
-  Check,
-  Eye,
-  EyeOff,
-  Loader2
+  Check, 
+  Eye, 
+  EyeOff, 
+  Loader2,
+  Database,
+  Info
 } from 'lucide-react';
 import { UserAccount } from '../types';
+import { signInOfficer, signUpOfficer, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthModalProps {
   portalType: 'attendance' | 'finances';
   onLoginSuccess: (user: UserAccount) => void;
   onBackToLanding: () => void;
-  users: UserAccount[];
-  onRegisterUser: (newUser: UserAccount) => void;
+  users?: UserAccount[];
+  onRegisterUser?: (newUser: UserAccount) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   portalType,
   onLoginSuccess,
   onBackToLanding,
-  users,
   onRegisterUser,
 }) => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -47,113 +48,120 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loadingAction, setLoadingAction] = useState('');
 
   const isAttendance = portalType === 'attendance';
-  const themeColor = isAttendance ? 'emerald' : 'amber';
+  const portalRole: UserAccount['role'] = isAttendance ? 'attendance_officer' : 'accountant';
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
     setError('');
+    setSuccessMsg('');
 
-    if (!email.trim() || !password) {
-      setError('Please provide both email address and password.');
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setError('Please provide both your registered email address and password.');
+      return;
+    }
+
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setError('Please enter a valid email address.');
       return;
     }
 
     setIsLoading(true);
-    setLoadingAction(isAttendance ? 'Verifying Secretariat credentials...' : 'Verifying Treasury credentials...');
+    setLoadingAction(
+      isAttendance 
+        ? 'Verifying Secretariat credentials with Supabase Auth...' 
+        : 'Verifying Treasury credentials with Supabase Auth...'
+    );
 
-    setTimeout(() => {
-      // Check existing users or default
-      const found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (found) {
-        const updatedUser: UserAccount = {
-          ...found,
-          password: password.trim(),
-        };
-        onRegisterUser(updatedUser);
-        onLoginSuccess(updatedUser);
-      } else {
-        // Create user session dynamically
-        const newUser: UserAccount = {
-          id: `usr-${Date.now()}`,
-          name: email.split('@')[0].toUpperCase(),
-          email: email.trim(),
-          password: password.trim(),
-          role: isAttendance ? 'attendance_officer' : 'accountant',
-          department: department || (isAttendance ? 'Secretariat' : 'Treasury'),
-        };
-        onRegisterUser(newUser);
-        onLoginSuccess(newUser);
+    try {
+      // Real authentication against Supabase Auth backend
+      const authenticatedUser = await signInOfficer(cleanEmail, password, portalType);
+      
+      if (onRegisterUser) {
+        onRegisterUser(authenticatedUser);
       }
+
+      setSuccessMsg('Authentication successful! Loading workspace...');
+      setTimeout(() => {
+        onLoginSuccess(authenticatedUser);
+      }, 400);
+    } catch (err: any) {
+      console.error('Supabase login error:', err);
+      setError(err?.message || 'Authentication failed. Please check your credentials.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
     setError('');
+    setSuccessMsg('');
 
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields to register.');
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+    const cleanDept = department.trim() || (isAttendance ? 'Secretariat' : 'Treasury & Finance');
+
+    if (!cleanName) {
+      setError('Please enter your full name.');
       return;
     }
 
-    const existing = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (existing) {
-      setError('An account with this email address already exists. Please log in instead.');
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setError('Please provide a valid official email address.');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters in length.');
       return;
     }
 
     setIsLoading(true);
-    setLoadingAction('Creating your executive account & initializing records...');
+    setLoadingAction('Creating executive account in Supabase Authentication...');
 
-    setTimeout(() => {
-      const newUser: UserAccount = {
-        id: `usr-${Date.now()}`,
-        name: name.trim(),
-        email: email.trim(),
-        password: password.trim(),
-        role: isAttendance ? 'attendance_officer' : 'accountant',
-        department: department.trim() || (isAttendance ? 'Secretariat' : 'Treasury & Finance'),
-      };
+    try {
+      // Create user directly in Supabase Auth
+      const { user: newUser, sessionCreated } = await signUpOfficer(cleanEmail, password, {
+        name: cleanName,
+        role: portalRole,
+        department: cleanDept,
+      });
 
-      onRegisterUser(newUser);
-      onLoginSuccess(newUser);
+      if (onRegisterUser) {
+        onRegisterUser(newUser);
+      }
+
+      if (sessionCreated) {
+        setSuccessMsg('Account created successfully! Redirecting to workspace...');
+        setTimeout(() => {
+          onLoginSuccess(newUser);
+        }, 500);
+      } else {
+        // Supabase requires email confirmation
+        setSuccessMsg(
+          'Account created in Supabase Auth! If email confirmation is enabled on your project, check your inbox to confirm, then log in.'
+        );
+        setAuthMode('login');
+      }
+    } catch (err: any) {
+      console.error('Supabase sign up error:', err);
+      setError(err?.message || 'Could not register executive account with Supabase Auth.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
-  };
-
-  const handleQuickDemoLogin = () => {
-    if (isLoading) return;
-    setError('');
-    setIsLoading(true);
-    setLoadingAction('Loading Financial Treasury Demo Workspace...');
-
-    setTimeout(() => {
-      const defaultUser: UserAccount = {
-        id: 'demo-fin-1',
-        name: 'Hamzat Salami (Financial Secretary / Accountant)',
-        email: 'accountant@mssnodonguyan.org',
-        password: 'password',
-        role: 'accountant',
-        department: 'Treasury & Finance'
-      };
-
-      onRegisterUser(defaultUser);
-      onLoginSuccess(defaultUser);
-      setIsLoading(false);
-    }, 2000);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center items-center px-4 py-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-8">
       
       {/* Top Back Navigation */}
       <div className="max-w-md w-full mb-6">
         <button
           onClick={onBackToLanding}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-colors text-xs font-semibold border border-slate-200"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors text-xs font-semibold border border-slate-200 shadow-xs cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Portal Selection
@@ -164,25 +172,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         
         {/* Loading Overlay */}
         {isLoading && (
-          <div className="absolute inset-0 z-30 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+          <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
             <div className={`w-14 h-14 rounded-2xl ${isAttendance ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'} flex items-center justify-center mb-4 shadow-sm`}>
               <Loader2 className="w-7 h-7 animate-spin" />
             </div>
             <h4 className="text-base font-bold text-slate-900 font-serif mb-1">
-              Authenticating Session
+              Supabase Authentication
             </h4>
-            <p className="text-xs text-slate-600 max-w-xs mb-4">
-              {loadingAction || 'Please wait while we prepare your executive workspace...'}
+            <p className="text-xs text-slate-600 max-w-xs mb-3">
+              {loadingAction || 'Communicating with Supabase Auth backend...'}
             </p>
-            {/* Animated 2-second Progress Bar */}
-            <div className="w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-              <div 
-                className={`h-full ${isAttendance ? 'bg-emerald-600' : 'bg-amber-600'} rounded-full animate-pulse transition-all duration-2000`}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <span className="text-[10px] text-slate-400 mt-2 font-medium tracking-wide">
-              Establishing secure session • 2s verification
+            <span className="text-[10px] text-slate-400 font-medium tracking-wide flex items-center gap-1">
+              <Database className="w-3 h-3 text-emerald-600" />
+              Verifying credentials against PostgreSQL database
             </span>
           </div>
         )}
@@ -195,6 +197,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0 rounded-2xl drop-shadow-md mx-auto" 
             referrerPolicy="no-referrer"
           />
+          <div className="mt-3">
+            <h3 className="text-base font-bold text-slate-900 font-serif">
+              {isAttendance ? 'Secretariat Attendance Portal' : 'Treasury & Finance Portal'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              MSSN Odonguyan Central Branch • Secure Supabase Auth
+            </p>
+          </div>
         </div>
 
         {/* Tab Switcher (Login vs Sign Up) */}
@@ -203,9 +213,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             type="button"
             disabled={isLoading}
             onClick={() => { setAuthMode('login'); setError(''); setSuccessMsg(''); }}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
+            className={`py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               authMode === 'login' 
-                ? 'bg-white text-slate-900 shadow-sm' 
+                ? 'bg-white text-slate-900 shadow-xs' 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -215,13 +225,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             type="button"
             disabled={isLoading}
             onClick={() => { setAuthMode('signup'); setError(''); setSuccessMsg(''); }}
-            className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
+            className={`py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               authMode === 'signup' 
-                ? 'bg-white text-slate-900 shadow-sm' 
+                ? 'bg-white text-slate-900 shadow-xs' 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Sign Up (New Officer)
+            Sign Up (Register Officer)
           </button>
         </div>
 
@@ -229,16 +239,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 sm:p-8 space-y-6">
 
           {error && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2.5 animate-in fade-in">
+              <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold">Authentication Failed</p>
+                <p className="leading-relaxed">{error}</p>
+              </div>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{successMsg}</span>
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold">Success</p>
+                <p className="leading-relaxed">{successMsg}</p>
+              </div>
             </div>
           )}
 
@@ -246,12 +262,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Email Address
+                  Registered Email Address
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
+                    required
                     disabled={isLoading}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -269,10 +286,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    required
                     disabled={isLoading}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Enter your Supabase password"
                     className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
@@ -297,19 +315,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 disabled={isLoading}
                 className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed ${
                   isAttendance 
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' 
+                    ? 'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/20' 
                     : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
                 }`}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Logging In (2s)...</span>
+                    <span>Verifying with Supabase Auth...</span>
                   </>
                 ) : (
                   <span>Log In to {isAttendance ? 'Attendance' : 'Financial'} System</span>
                 )}
               </button>
+
+              <div className="pt-2 text-center">
+                <p className="text-[11px] text-slate-500">
+                  New officer? Click <button type="button" onClick={() => setAuthMode('signup')} className="font-bold text-emerald-700 hover:underline">Sign Up</button> to create your Supabase account.
+                </p>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSignUp} className="space-y-4">
@@ -321,6 +345,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
+                    required
                     disabled={isLoading}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -338,6 +363,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
+                    required
                     disabled={isLoading}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -355,6 +381,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
+                    required
                     disabled={isLoading}
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
@@ -366,16 +393,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Password
+                  Create Password (min. 6 characters)
                 </label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
                     disabled={isLoading}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a password"
+                    placeholder="Create a strong password"
                     className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                   />
                   <button
@@ -400,46 +429,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 disabled={isLoading}
                 className={`w-full py-3 px-4 rounded-xl text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed ${
                   isAttendance 
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' 
+                    ? 'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/20' 
                     : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
                 }`}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Creating Account (2s)...</span>
+                    <span>Registering with Supabase Auth...</span>
                   </>
                 ) : (
-                  <span>Create Account & Sign In</span>
+                  <span>Register Officer & Sign In</span>
                 )}
               </button>
+
+              <div className="pt-2 text-center">
+                <p className="text-[11px] text-slate-500">
+                  Already have an account? <button type="button" onClick={() => setAuthMode('login')} className="font-bold text-emerald-700 hover:underline">Log in</button>
+                </p>
+              </div>
             </form>
           )}
 
-          {/* Quick Demo Credentials Button for Finance Portal */}
-          {!isAttendance && (
-            <div className="pt-4 border-t border-slate-200 text-center">
-              <p className="text-xs text-slate-500 mb-2">Want to test the app instantly?</p>
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={handleQuickDemoLogin}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-300 cursor-pointer disabled:opacity-60"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
-                    <span>Loading Demo Workspace...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>1-Click Demo Sign In (General Secretary / Accountant)</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 text-center">
+            <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Supabase Auth Project: <code className="font-mono text-[10px] text-slate-600 bg-slate-100 px-1 py-0.5 rounded">ukmublnegofpewmqgfdl</code></span>
+          </div>
 
         </div>
 

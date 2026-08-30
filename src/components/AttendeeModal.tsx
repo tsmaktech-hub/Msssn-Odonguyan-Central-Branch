@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Attendee, GenderType, MemberCategory } from '../types';
-import { X, UserPlus } from 'lucide-react';
+import { Attendee } from '../types';
+import { X, UserPlus, Mail, Phone, Building, Tag, FileText } from 'lucide-react';
 
 interface AttendeeModalProps {
   isOpen: boolean;
@@ -9,14 +9,7 @@ interface AttendeeModalProps {
   editingAttendee?: Attendee | null;
 }
 
-const ROLES: string[] = ['Member', 'VIP', 'Volunteer', 'Speaker', 'Staff', 'Guest', 'Executive / Staff'];
-const CATEGORIES: MemberCategory[] = [
-  'Undergraduate',
-  'Secondary Student',
-  'Alumni / Working Class',
-  'Executive / Staff',
-  'Guest'
-];
+const ROLES: Attendee['role'][] = ['Member', 'VIP', 'Volunteer', 'Speaker', 'Staff', 'Guest'];
 
 export const AttendeeModal: React.FC<AttendeeModalProps> = ({
   isOpen,
@@ -25,13 +18,14 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
   editingAttendee = null,
 }) => {
   const [name, setName] = useState('');
-  const [gender, setGender] = useState<GenderType>('Brother');
-  const [category, setCategory] = useState<MemberCategory>('Undergraduate');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<string>('Member');
+  const [role, setRole] = useState<Attendee['role']>('Member');
   const [organization, setOrganization] = useState('');
   const [notes, setNotes] = useState('');
+
+  const [gender, setGender] = useState<Attendee['gender']>('Brother');
+  const [category, setCategory] = useState<Attendee['category']>('Undergraduate');
 
   useEffect(() => {
     if (editingAttendee) {
@@ -40,8 +34,8 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
       setCategory(editingAttendee.category || 'Undergraduate');
       setEmail(editingAttendee.email || '');
       setPhone(editingAttendee.phone || '');
-      setRole(editingAttendee.role || 'Member');
-      setOrganization(editingAttendee.organization || editingAttendee.institution || '');
+      setRole(editingAttendee.role);
+      setOrganization(editingAttendee.organization || '');
       setNotes(editingAttendee.notes || '');
     } else {
       setName('');
@@ -69,7 +63,6 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
       email: email.trim() || undefined,
       phone: phone.trim() || undefined,
       role,
-      institution: organization.trim() || undefined,
       organization: organization.trim() || undefined,
       notes: notes.trim() || undefined,
     });
@@ -83,7 +76,7 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
         
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white">
               <UserPlus className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-bold text-slate-900">
@@ -107,42 +100,11 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
             <input
               type="text"
               required
-              placeholder="e.g. Abdur-Rahman Yusuf"
+              placeholder="e.g. Sarah Jenkins"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
-                Gender *
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as GenderType)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="Brother">Brother</option>
-                <option value="Sister">Sister</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
-                Category *
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as MemberCategory)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -152,10 +114,10 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
               </label>
               <input
                 type="email"
-                placeholder="member@example.com"
+                placeholder="sarah@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -165,10 +127,10 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
               </label>
               <input
                 type="tel"
-                placeholder="08012345678"
+                placeholder="+1 (555) 000-0000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -176,12 +138,12 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Role / Designation
+                Role / Category
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500"
+                onChange={(e) => setRole(e.target.value as Attendee['role'])}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
@@ -191,28 +153,28 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Institution / School / Area
+                Organization / Affiliation
               </label>
               <input
                 type="text"
-                placeholder="e.g. UNILAG, LASU, Odonguyan..."
+                placeholder="e.g. Apex Corp, Volunteer Org..."
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">
-              Notes & Additional Details
+              Notes & Background
             </label>
             <input
               type="text"
-              placeholder="e.g. Regular attendee, Quran class..."
+              placeholder="e.g. Key contact, requested dietary accommodations..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -226,7 +188,7 @@ export const AttendeeModal: React.FC<AttendeeModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all cursor-pointer"
             >
               Save Person
             </button>

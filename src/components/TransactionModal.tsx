@@ -99,7 +99,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       date,
       paymentMethod,
       payeeOrDonor: payeeOrDonor.trim() || (type === 'income' ? 'Anonymous Donor / Participant' : 'Vendor'),
-      description: notes.trim() || `${category} - ${payeeOrDonor.trim() || (type === 'income' ? 'Collection' : 'Expenditure')}`,
+      description: notes.trim() || category || 'MSSN Transaction',
       referenceNo: referenceNo.trim() || undefined,
       notes: notes.trim() || undefined,
     });

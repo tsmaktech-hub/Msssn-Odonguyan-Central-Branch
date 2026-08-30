@@ -19,8 +19,8 @@ import {
 
 const KEYS = {
   PROGRAMS: 'mssn_programs_v4',
-  ATTENDEES: 'mssn_attendees_v3',
-  ATTENDANCE: 'mssn_attendance_v5',
+  ATTENDEES: 'mssn_attendees_v6',
+  ATTENDANCE: 'mssn_attendance_v8',
   TRANSACTIONS: 'mssn_transactions_v3',
   SEASONS: 'mssn_seasons_v3',
   ACTIVE_SEASON_ID: 'mssn_active_season_id_v3',
@@ -106,21 +106,24 @@ export const loadStoredData = () => {
       localStorage.setItem(KEYS.PROGRAMS, JSON.stringify(programs));
     } catch {}
 
-    let attendees: Attendee[] = storedAttendees ? JSON.parse(storedAttendees) as Attendee[] : initialAttendees;
-    if (!attendees || attendees.length === 0) {
-      attendees = initialAttendees;
-      try {
-        localStorage.setItem(KEYS.ATTENDEES, JSON.stringify(attendees));
-      } catch {}
-    }
+    // Purge any legacy stored attendees/attendance to ensure clean cleared sheet
+    const legacyKeys = [
+      'mssn_attendees', 'mssn_attendees_v1', 'mssn_attendees_v2', 'mssn_attendees_v3', 'mssn_attendees_v4', 'mssn_attendees_v5',
+      'mssn_attendance', 'mssn_attendance_v1', 'mssn_attendance_v2', 'mssn_attendance_v3', 'mssn_attendance_v4', 'mssn_attendance_v5', 'mssn_attendance_v6', 'mssn_attendance_v7'
+    ];
+    legacyKeys.forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
 
-    let attendance: AttendanceRecord[] = storedAttendance ? JSON.parse(storedAttendance) as AttendanceRecord[] : initialAttendanceRecords;
-    if (!attendance || attendance.length === 0) {
-      attendance = initialAttendanceRecords;
-      try {
-        localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(attendance));
-      } catch {}
-    }
+    let attendees: Attendee[] = storedAttendees !== null ? JSON.parse(storedAttendees) as Attendee[] : initialAttendees;
+    try {
+      localStorage.setItem(KEYS.ATTENDEES, JSON.stringify(attendees));
+    } catch {}
+
+    let attendance: AttendanceRecord[] = storedAttendance !== null ? JSON.parse(storedAttendance) as AttendanceRecord[] : initialAttendanceRecords;
+    try {
+      localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(attendance));
+    } catch {}
 
     return {
       programs: programs,

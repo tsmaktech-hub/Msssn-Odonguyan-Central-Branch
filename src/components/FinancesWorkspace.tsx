@@ -36,9 +36,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Calculator,
-  Sparkles,
-  Database,
-  GitMerge
+  Sparkles
 } from 'lucide-react';
 import { formatNaira, exportTransactionsToCSV } from '../lib/storage';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
@@ -61,13 +59,6 @@ interface FinancesWorkspaceProps {
   onUpdateTransaction?: (id: string, updatedData: Partial<FinancialTransaction>) => void;
   onDeleteTransaction: (id: string) => void;
   onSetAccountBalances?: (targetIncome: number, targetExpense: number, note?: string) => void;
-
-  // Cloud Sync & Multi-Device Merge
-  onCloudSyncAndMerge?: () => Promise<{ success: boolean; message: string; addedFromCloudCount?: number }>;
-  isCloudSyncing?: boolean;
-  cloudSyncStatus?: { ok: boolean; message: string; lastSyncTime?: string } | null;
-  isSupabaseConfigured?: boolean;
-  onOpenSupabaseModal?: () => void;
 }
 
 export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
@@ -84,11 +75,6 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
   onUpdateTransaction,
   onDeleteTransaction,
   onSetAccountBalances,
-  onCloudSyncAndMerge,
-  isCloudSyncing = false,
-  cloudSyncStatus,
-  isSupabaseConfigured = false,
-  onOpenSupabaseModal,
 }) => {
   const [activeTab, setActiveTab] = useState<FinanceTab>(() => {
     try {
@@ -352,8 +338,8 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
           </div>
 
           {/* Logged in Accountant Info & Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
-            <div className="hidden md:flex flex-col text-right pr-1">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:flex flex-col text-right">
               <span className="text-[10px] sm:text-xs text-emerald-200">Logged in Accountant</span>
               <span className="text-xs font-bold text-white flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
@@ -361,46 +347,6 @@ export const FinancesWorkspace: React.FC<FinancesWorkspaceProps> = ({
               </span>
             </div>
 
-            {/* Cloud Sync Status / Trigger Button */}
-            {onCloudSyncAndMerge && (
-              <button
-                onClick={onCloudSyncAndMerge}
-                disabled={isCloudSyncing}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer disabled:opacity-60 ${
-                  cloudSyncStatus?.ok
-                    ? 'bg-teal-800/80 hover:bg-teal-700 text-teal-100 border-teal-600/50'
-                    : 'bg-amber-900/60 hover:bg-amber-800 text-amber-200 border-amber-600/50'
-                }`}
-                title="Synchronize and merge financial records with Supabase"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-teal-300' : 'text-teal-300'}`} />
-                <span className="hidden sm:inline">
-                  {isCloudSyncing ? 'Merging...' : 'Sync Cloud'}
-                </span>
-              </button>
-            )}
-
-            {/* Supabase Database Settings */}
-            <button
-              onClick={onOpenSupabaseModal}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-700 cursor-pointer"
-              title="Cloud Database Settings"
-            >
-              <Database className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden lg:inline">Database</span>
-            </button>
-
-            {/* Back to Portal Switcher */}
-            <button
-              onClick={onBackToPortal}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-700 cursor-pointer"
-              title="Switch Portal"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">Portals</span>
-            </button>
-
-            {/* Logout */}
             <button
               onClick={() => setIsLogoutModalOpen(true)}
               className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-800 hover:bg-red-700 text-emerald-100 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-emerald-700 cursor-pointer"

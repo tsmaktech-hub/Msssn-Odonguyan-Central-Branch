@@ -1,21 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Program, 
   Attendee, 
   AttendanceRecord, 
   FinancialTransaction, 
-  Season,
-  UserAccount,
-  MainPortalView,
-  AttendanceStatus,
-  GenderType,
-  SyncLog
+  Season, 
+  UserAccount, 
+  MainPortalView, 
+  AttendanceStatus, 
+  GenderType, 
+  SyncLog 
 } from './types';
 import { loadStoredData, saveStoredData } from './lib/storage';
 import { 
-  isSupabaseConfigured, 
-  syncAndMergeWithCloud, 
-  checkSupabaseHealth 
+  supabase,
+  getCurrentOfficer, 
+  signOutOfficer, 
+  fetchAllAppDataFromSupabase,
+  upsertProgramInSupabase,
+  upsertAttendeeInSupabase,
+  deleteAttendeeFromSupabase,
+  clearAllAttendeesInSupabase,
+  upsertAttendanceRecordInSupabase,
+  upsertAttendanceRecordsBatchInSupabase,
+  clearAttendanceRecordsForProgramInSupabase,
+  upsertTransactionInSupabase,
+  deleteTransactionFromSupabase,
+  upsertSeasonInSupabase,
+  saveSyncLogToSupabase
 } from './lib/supabase';
 
 import { LandingPortal } from './components/LandingPortal';
@@ -25,95 +37,120 @@ import { FinancesWorkspace } from './components/FinancesWorkspace';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 export default function App() {
-  // Synchronously load stored data on initial mount to prevent empty flashes or overwriting storage
-  const [initialData] = useState(() => loadStoredData());
-
-  // Main Navigation View (persists active page across browser refresh)
-  const [portalView, setPortalView] = useState<MainPortalView>(() => {
-    try {
-      const savedView = initialData.portalView;
-      const attAuth = initialData.attendanceUser;
-      const finAuth = initialData.financeUser;
-
-      if (savedView === 'attendance_workspace' && attAuth) return 'attendance_workspace';
-      if (savedView === 'finances_workspace' && finAuth) return 'finances_workspace';
-      if (savedView === 'attendance_auth') return 'attendance_auth';
-      if (savedView === 'finances_auth') return 'finances_auth';
-      if (savedView === 'landing') return 'landing';
-
-      if (attAuth && !finAuth) return 'attendance_workspace';
-      if (finAuth && !attAuth) return 'finances_workspace';
-      return 'landing';
-    } catch {
-      return 'landing';
-    }
-  });
-
+  // Main Navigation View
+  const [portalView, setPortalView] = useState<MainPortalView>('landing');
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
-  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<{
-    ok: boolean;
-    message: string;
-    lastSyncTime?: string;
-  } | null>(null);
 
-  // Core App Data initialized synchronously with stored data
-  const [programs, setPrograms] = useState<Program[]>(() => initialData.programs);
-  const [attendees, setAttendees] = useState<Attendee[]>(() => initialData.attendees);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => initialData.attendance);
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(() => initialData.transactions);
-  const [seasons, setSeasons] = useState<Season[]>(() => initialData.seasons);
-  const [activeSeasonId, setActiveSeasonId] = useState<string>(() => initialData.activeSeasonId);
-  const [users, setUsers] = useState<UserAccount[]>(() => initialData.users);
+  // Core App Data
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [activeSeasonId, setActiveSeasonId] = useState<string>('season-1');
+  const [users, setUsers] = useState<UserAccount[]>([]);
 
-  // Auth Users
-  const [attendanceUser, setAttendanceUser] = useState<UserAccount | null>(() => initialData.attendanceUser);
-  const [financeUser, setFinanceUser] = useState<UserAccount | null>(() => initialData.financeUser);
+  // Auth Users (Populated ONLY by verified Supabase Authentication)
+  const [attendanceUser, setAttendanceUser] = useState<UserAccount | null>(null);
+  const [financeUser, setFinanceUser] = useState<UserAccount | null>(null);
 
   // Security PIN & Sync Logs
-  const [accountantPin, setAccountantPin] = useState<string>(() => initialData.accountantPin || '1234');
-  const [sheetResetPassword, setSheetResetPassword] = useState<string>(() => initialData.sheetResetPassword || '1234');
-  const [lastSync, setLastSync] = useState<SyncLog | null>(() => initialData.lastSync);
+  const [accountantPin, setAccountantPin] = useState<string>('1234');
+  const [sheetResetPassword, setSheetResetPassword] = useState<string>('1234');
+  const [lastSync, setLastSync] = useState<SyncLog | null>(null);
 
-  // Cloud sync verification on mount
+  // 1. Initial Data Load & Supabase Auth Session Check
   useEffect(() => {
-    // Auto check Supabase health and pull/merge on startup if configured
-    if (isSupabaseConfigured) {
-      checkSupabaseHealth().then(res => {
-        if (res.ok) {
-          syncAndMergeWithCloud({
-            attendees: initialData.attendees,
-            programs: initialData.programs,
-            attendance: initialData.attendance,
-            transactions: initialData.transactions,
-            seasons: initialData.seasons,
-            users: initialData.users,
-          }).then(syncRes => {
-            if (syncRes.success && syncRes.mergedData) {
-              setAttendees(syncRes.mergedData.attendees);
-              setPrograms(syncRes.mergedData.programs);
-              setAttendance(syncRes.mergedData.attendance);
-              setTransactions(syncRes.mergedData.transactions);
-              setSeasons(syncRes.mergedData.seasons);
-              setUsers(syncRes.mergedData.users);
-              setCloudSyncStatus({
-                ok: true,
-                message: syncRes.message,
-                lastSyncTime: new Date().toLocaleTimeString(),
-              });
-            }
-          }).catch(() => {});
-        } else {
-          setCloudSyncStatus({
-            ok: false,
-            message: res.message
-          });
+    // Load cached local storage data
+    const loaded = loadStoredData();
+    setPrograms(loaded.programs);
+    setAttendees(loaded.attendees);
+    setAttendance(loaded.attendance);
+    setTransactions(loaded.transactions);
+    setSeasons(loaded.seasons);
+    setActiveSeasonId(loaded.activeSeasonId);
+    setUsers(loaded.users);
+    setAccountantPin(loaded.accountantPin);
+    setSheetResetPassword(loaded.sheetResetPassword || '1234');
+    setLastSync(loaded.lastSync);
+
+    // Verify session with Supabase Auth
+    const checkSupabaseAuth = async () => {
+      try {
+        const officer = await getCurrentOfficer();
+        if (officer) {
+          if (officer.role === 'accountant') {
+            setFinanceUser(officer);
+          } else {
+            setAttendanceUser(officer);
+          }
         }
-      }).catch(() => {});
+      } catch (err) {
+        console.error('Error checking Supabase session:', err);
+      }
+    };
+
+    // Fetch database records from Supabase PostgreSQL
+    const syncFromSupabaseDb = async () => {
+      try {
+        const dbData = await fetchAllAppDataFromSupabase();
+        if (dbData.programs && dbData.programs.length > 0) {
+          setPrograms(dbData.programs);
+        }
+        if (dbData.attendees !== null) {
+          setAttendees(dbData.attendees);
+        }
+        if (dbData.attendance !== null) {
+          setAttendance(dbData.attendance);
+        }
+        if (dbData.transactions && dbData.transactions.length > 0) {
+          setTransactions(dbData.transactions);
+        }
+        if (dbData.seasons && dbData.seasons.length > 0) {
+          setSeasons(dbData.seasons);
+        }
+        if (dbData.lastSync) {
+          setLastSync(dbData.lastSync);
+        }
+      } catch (err) {
+        console.warn('Supabase DB fetch notice:', err);
+      }
+    };
+
+    checkSupabaseAuth();
+    syncFromSupabaseDb();
+
+    // Listen to Supabase Auth state changes
+    if (supabase) {
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          setAttendanceUser(null);
+          setFinanceUser(null);
+          setPortalView('landing');
+        } else if (event === 'SIGNED_IN' && session.user) {
+          const userMeta = session.user.user_metadata || {};
+          const officerAccount: UserAccount = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: userMeta.name || session.user.email?.split('@')[0] || 'Executive Officer',
+            role: (userMeta.role as any) || 'attendance_officer',
+            department: userMeta.department || 'Secretariat',
+          };
+          if (officerAccount.role === 'accountant') {
+            setFinanceUser(officerAccount);
+          } else {
+            setAttendanceUser(officerAccount);
+          }
+        }
+      });
+
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
     }
   }, []);
 
-  // Save to LocalStorage on state updates
+  // 2. Save state cache
   useEffect(() => {
     saveStoredData({
       programs,
@@ -140,13 +177,13 @@ export default function App() {
     users, 
     attendanceUser, 
     financeUser, 
-    accountantPin,
-    sheetResetPassword,
-    lastSync,
+    accountantPin, 
+    sheetResetPassword, 
+    lastSync, 
     portalView
   ]);
 
-  // Handler: Select Attendance Button on Landing Page
+  // Handler: Select Attendance Tile on Landing Page
   const handleSelectAttendanceTile = () => {
     if (attendanceUser) {
       setPortalView('attendance_workspace');
@@ -155,7 +192,7 @@ export default function App() {
     }
   };
 
-  // Handler: Select Financial Records Button on Landing Page
+  // Handler: Select Financial Records Tile on Landing Page
   const handleSelectFinancesTile = () => {
     if (financeUser) {
       setPortalView('finances_workspace');
@@ -164,11 +201,11 @@ export default function App() {
     }
   };
 
-  // Handler: Register New User
+  // Handler: Register New User profile cache
   const handleRegisterUser = (newUser: UserAccount) => {
     setUsers(prev => {
       if (prev.some(u => u.email.toLowerCase() === newUser.email.toLowerCase())) {
-        return prev;
+        return prev.map(u => u.email.toLowerCase() === newUser.email.toLowerCase() ? newUser : u);
       }
       return [...prev, newUser];
     });
@@ -186,7 +223,17 @@ export default function App() {
     setPortalView('finances_workspace');
   };
 
-  // Attendance Sheet Actions
+  // Handler: Logout
+  const handleLogout = async () => {
+    await signOutOfficer();
+    setAttendanceUser(null);
+    setFinanceUser(null);
+    setPortalView('landing');
+  };
+
+  // ==========================================
+  // Attendance Sheet Actions & Supabase Sync
+  // ==========================================
   const handleUpdateAttendance = (
     programId: string, 
     attendeeId: string, 
@@ -196,10 +243,11 @@ export default function App() {
   ) => {
     const existingIndex = attendance.findIndex(a => a.programId === programId && a.attendeeId === attendeeId);
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let updatedRecord: AttendanceRecord;
 
     if (existingIndex >= 0) {
       const updated = [...attendance];
-      updated[existingIndex] = {
+      updatedRecord = {
         ...updated[existingIndex],
         status,
         checkInTime: status === 'present' || status === 'late' ? (updated[existingIndex].checkInTime || nowTime) : undefined,
@@ -207,9 +255,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
         isSynced: isSynced !== undefined ? isSynced : false,
       };
+      updated[existingIndex] = updatedRecord;
       setAttendance(updated);
     } else {
-      const newRec: AttendanceRecord = {
+      updatedRecord = {
         id: `rec-${Date.now()}-${attendeeId}`,
         programId,
         seasonId: activeSeasonId,
@@ -220,8 +269,11 @@ export default function App() {
         updatedAt: new Date().toISOString(),
         isSynced: isSynced !== undefined ? isSynced : false,
       };
-      setAttendance(prev => [...prev, newRec]);
+      setAttendance(prev => [...prev, updatedRecord]);
     }
+
+    // Persist to Supabase
+    upsertAttendanceRecordInSupabase(updatedRecord);
   };
 
   const handleAddAttendee = (memberData: Omit<Attendee, 'id' | 'createdAt'>) => {
@@ -231,18 +283,36 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setAttendees(prev => [newMember, ...prev]);
+    // Persist to Supabase
+    upsertAttendeeInSupabase(newMember);
   };
 
   const handleEditAttendee = (id: string, updatedData: Partial<Attendee>) => {
-    setAttendees(prev => prev.map(a => a.id === id ? { ...a, ...updatedData } : a));
+    setAttendees(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, ...updatedData } : a);
+      const target = updated.find(a => a.id === id);
+      if (target) {
+        upsertAttendeeInSupabase(target);
+      }
+      return updated;
+    });
   };
 
   const handleDeleteAttendee = (id: string) => {
     setAttendees(prev => prev.filter(a => a.id !== id));
     setAttendance(prev => prev.filter(a => a.attendeeId !== id));
+    // Persist to Supabase
+    deleteAttendeeFromSupabase(id);
   };
 
-  // Season / Program Sheet Reset Handler (Supports separate reset for Weekly Usrah or Sisters Circle)
+  const handleClearAllAttendees = () => {
+    setAttendees([]);
+    setAttendance([]);
+    // Persist to Supabase
+    clearAllAttendeesInSupabase();
+  };
+
+  // Season / Program Sheet Reset Handler
   const handleStartNewSeason = (newSeasonName: string, resetScope: 'weekly_usrah' | 'sisters_circle' | 'all' = 'all'): string => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const isSistersProgCheck = (p?: Program) => Boolean(
@@ -254,11 +324,9 @@ export default function App() {
     );
 
     if (resetScope === 'weekly_usrah') {
-      // 1. Reset Weekly Usrah (Brothers/Sisters) stream ONLY
       const weeklyProgIds = programs.filter(p => !isSistersProgCheck(p)).map(p => p.id);
-      
-      // Clear attendance only for Weekly Usrah
       setAttendance(prev => prev.filter(rec => !weeklyProgIds.includes(rec.programId)));
+      weeklyProgIds.forEach(pId => clearAttendanceRecordsForProgramInSupabase(pId));
 
       const freshWeeklyProgId = `prog-${Date.now()}-weekly`;
       const freshWeeklyProg: Program = {
@@ -274,19 +342,16 @@ export default function App() {
         createdAt: new Date().toISOString(),
       };
 
-      // Keep Sisters Circle programs intact, replace old Weekly Usrah programs with fresh active session
       setPrograms(prev => {
         const sistersProgs = prev.filter(p => isSistersProgCheck(p));
         return [freshWeeklyProg, ...sistersProgs];
       });
-
+      upsertProgramInSupabase(freshWeeklyProg);
       return freshWeeklyProgId;
     } else if (resetScope === 'sisters_circle') {
-      // 2. Reset Sisters Circle Usrah stream ONLY
       const sistersProgIds = programs.filter(p => isSistersProgCheck(p)).map(p => p.id);
-
-      // Clear attendance only for Sisters Circle
       setAttendance(prev => prev.filter(rec => !sistersProgIds.includes(rec.programId)));
+      sistersProgIds.forEach(pId => clearAttendanceRecordsForProgramInSupabase(pId));
 
       const freshSistersProgId = `prog-${Date.now()}-sisters`;
       const freshSistersProg: Program = {
@@ -302,15 +367,13 @@ export default function App() {
         createdAt: new Date().toISOString(),
       };
 
-      // Keep Weekly Usrah programs intact, replace old Sisters Circle programs with fresh active session
       setPrograms(prev => {
         const weeklyProgs = prev.filter(p => !isSistersProgCheck(p));
         return [...weeklyProgs, freshSistersProg];
       });
-
+      upsertProgramInSupabase(freshSistersProg);
       return freshSistersProgId;
     } else {
-      // 3. Reset ALL streams (Complete Season Reset)
       const newSeasonId = `season-${Date.now()}`;
       const newSeason: Season = {
         id: newSeasonId,
@@ -356,6 +419,8 @@ export default function App() {
       ];
 
       setPrograms(freshPrograms);
+      upsertSeasonInSupabase(newSeason);
+      freshPrograms.forEach(p => upsertProgramInSupabase(p));
       return mainProgramId;
     }
   };
@@ -368,7 +433,6 @@ export default function App() {
 
     if (!targetProgId) return '';
 
-    // Determine eligible members for this program stream (Sisters-only vs General Usrah)
     const isSistersProg = Boolean(
       targetProg &&
       (targetProg.category === 'Sisters Wing' ||
@@ -381,43 +445,42 @@ export default function App() {
       ? attendees.filter(a => a.gender === 'Sister')
       : attendees;
 
-    // 1. When syncing attendance:
-    // Mark chosen check-ins as synced. For anyone not chosen (neither present nor absent), record them as 'absent'
-    setAttendance(prev => {
-      const remainingRecords = prev.filter(rec => rec.programId !== targetProgId);
-      const existingProgRecords = prev.filter(rec => rec.programId === targetProgId);
+    const existingProgRecords = attendance.filter(rec => rec.programId === targetProgId);
 
-      const finalizedRecords: AttendanceRecord[] = eligibleMembers.map(member => {
-        const found = existingProgRecords.find(r => r.attendeeId === member.id);
-        if (found && (found.status === 'present' || found.status === 'late' || found.status === 'absent')) {
-          return {
-            ...found,
-            isSynced: true,
-            syncedAt: found.syncedAt || nowIso,
-            updatedAt: nowIso,
-          };
-        }
-
-        // Person was not marked present or absent: auto-record as absent for this synced day
+    const finalizedRecords: AttendanceRecord[] = eligibleMembers.map(member => {
+      const found = existingProgRecords.find(r => r.attendeeId === member.id);
+      if (found && (found.status === 'present' || found.status === 'late' || found.status === 'absent')) {
         return {
-          id: found ? found.id : `rec-${Date.now()}-${member.id}`,
-          programId: targetProgId,
-          seasonId: targetProg.seasonId || activeSeasonId,
-          attendeeId: member.id,
-          status: 'absent' as AttendanceStatus,
+          ...found,
           isSynced: true,
-          syncedAt: nowIso,
+          syncedAt: found.syncedAt || nowIso,
           updatedAt: nowIso,
         };
-      });
+      }
 
+      return {
+        id: found ? found.id : `rec-${Date.now()}-${member.id}`,
+        programId: targetProgId,
+        seasonId: targetProg.seasonId || activeSeasonId,
+        attendeeId: member.id,
+        status: 'absent' as AttendanceStatus,
+        isSynced: true,
+        syncedAt: nowIso,
+        updatedAt: nowIso,
+      };
+    });
+
+    setAttendance(prev => {
+      const remainingRecords = prev.filter(rec => rec.programId !== targetProgId);
       return [...remainingRecords, ...finalizedRecords];
     });
 
-    // 2. Mark the current synced program as completed
-    setPrograms(prev => prev.map(p => p.id === targetProgId ? { ...p, status: 'completed' as const } : p));
+    // Mark current program completed
+    const completedProg: Program = { ...targetProg, status: 'completed' };
+    setPrograms(prev => prev.map(p => p.id === targetProgId ? completedProg : p));
+    upsertProgramInSupabase(completedProg);
 
-    // 3. Compute next session date (+7 days)
+    // Compute next session date (+7 days)
     let nextDateStr = new Date().toISOString().slice(0, 10);
     if (targetProg?.date) {
       try {
@@ -429,7 +492,6 @@ export default function App() {
       }
     }
 
-    // 4. Create the next active session in the same stream
     const nextProgId = `prog-${Date.now()}`;
     const nextProg: Program = {
       id: nextProgId,
@@ -445,14 +507,19 @@ export default function App() {
     };
 
     setPrograms(prev => [...prev, nextProg]);
+    upsertProgramInSupabase(nextProg);
 
-    // 5. Log the sync event
+    // Persist finalized batch records to Supabase
+    upsertAttendanceRecordsBatchInSupabase(finalizedRecords);
+
+    // Log the sync event in Supabase
     const log: SyncLog = {
       timestamp: nowIso,
       recordsCount: eligibleMembers.length,
       syncedBy: attendanceUser?.name || 'Attendance Officer',
     };
     setLastSync(log);
+    saveSyncLogToSupabase(log);
 
     return nextProgId;
   };
@@ -487,11 +554,14 @@ export default function App() {
       return false;
     });
 
-    setAttendance([...untargeted, ...updatedRecords]);
+    const allMerged = [...untargeted, ...updatedRecords];
+    setAttendance(allMerged);
+    upsertAttendanceRecordsBatchInSupabase(updatedRecords);
   };
 
   const handleClearAttendance = (programId: string) => {
     setAttendance(prev => prev.filter(a => a.programId !== programId));
+    clearAttendanceRecordsForProgramInSupabase(programId);
   };
 
   const handleUpdateProgramDate = (programId: string, newDate: string): string => {
@@ -515,14 +585,22 @@ export default function App() {
         createdAt: new Date().toISOString(),
       };
       setPrograms(prev => [...prev, newDraft]);
+      upsertProgramInSupabase(newDraft);
       return newDraftId;
     } else {
-      setPrograms(prev => prev.map(p => p.id === programId ? { ...p, date: newDate } : p));
+      setPrograms(prev => {
+        const updated = prev.map(p => p.id === programId ? { ...p, date: newDate } : p);
+        const pObj = updated.find(p => p.id === programId);
+        if (pObj) upsertProgramInSupabase(pObj);
+        return updated;
+      });
       return programId;
     }
   };
 
-  // Finance Actions
+  // ==========================================
+  // Finance Actions & Supabase Sync
+  // ==========================================
   const handleAddTransaction = (txData: Omit<FinancialTransaction, 'id' | 'createdAt'>) => {
     const newTx: FinancialTransaction = {
       ...txData,
@@ -530,14 +608,21 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setTransactions(prev => [newTx, ...prev]);
+    upsertTransactionInSupabase(newTx);
   };
 
   const handleUpdateTransaction = (id: string, updatedData: Partial<FinancialTransaction>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedData } : t));
+    setTransactions(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, ...updatedData } : t);
+      const target = updated.find(t => t.id === id);
+      if (target) upsertTransactionInSupabase(target);
+      return updated;
+    });
   };
 
   const handleDeleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+    deleteTransactionFromSupabase(id);
   };
 
   const handleSetAccountBalances = (targetIncome: number, targetExpense: number, note?: string) => {
@@ -564,7 +649,6 @@ export default function App() {
           createdAt: new Date().toISOString(),
         });
       } else {
-        // Reduced income via reconciling expense or adjustment
         newTxs.push({
           id: `tx-${Date.now()}-inc-adj`,
           type: 'expense',
@@ -595,7 +679,6 @@ export default function App() {
           createdAt: new Date().toISOString(),
         });
       } else {
-        // Reduced expense via reconciling income/refund entry
         newTxs.push({
           id: `tx-${Date.now() + 1}-exp-adj`,
           type: 'income',
@@ -613,49 +696,7 @@ export default function App() {
 
     if (newTxs.length > 0) {
       setTransactions(prev => [...newTxs, ...prev]);
-    }
-  };
-
-  // Cloud Sync & Multi-Device Merge Handler
-  const handleCloudSyncAndMerge = async (): Promise<{ success: boolean; message: string; addedFromCloudCount?: number }> => {
-    setIsCloudSyncing(true);
-    try {
-      const result = await syncAndMergeWithCloud({
-        attendees,
-        programs,
-        attendance,
-        transactions,
-        seasons,
-        users,
-      });
-
-      if (result.success && result.mergedData) {
-        setAttendees(result.mergedData.attendees);
-        setPrograms(result.mergedData.programs);
-        setAttendance(result.mergedData.attendance);
-        setTransactions(result.mergedData.transactions);
-        setSeasons(result.mergedData.seasons);
-        setUsers(result.mergedData.users);
-
-        setCloudSyncStatus({
-          ok: true,
-          message: result.message,
-          lastSyncTime: new Date().toLocaleTimeString(),
-        });
-        return { success: true, message: result.message, addedFromCloudCount: result.addedFromCloudCount };
-      } else {
-        setCloudSyncStatus({
-          ok: false,
-          message: result.message,
-        });
-        return { success: false, message: result.message };
-      }
-    } catch (err: any) {
-      const msg = err?.message || 'Database synchronization failed.';
-      setCloudSyncStatus({ ok: false, message: msg });
-      return { success: false, message: msg };
-    } finally {
-      setIsCloudSyncing(false);
+      newTxs.forEach(tx => upsertTransactionInSupabase(tx));
     }
   };
 
@@ -673,16 +714,14 @@ export default function App() {
         />
       )}
 
-      {/* SUPABASE CONFIGURATION MODAL */}
+      {/* SUPABASE CONFIGURATION & SQL MIGRATION MODAL */}
       <SupabaseConfigModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
-        onTriggerCloudMerge={handleCloudSyncAndMerge}
-        isCloudSyncing={isCloudSyncing}
       />
 
       {/* 2. ATTENDANCE AUTHENTICATION (SIGN UP & LOGIN) */}
-      {(portalView === 'attendance_auth' || (portalView === 'attendance_workspace' && !attendanceUser)) && (
+      {portalView === 'attendance_auth' && (
         <AuthModal
           portalType="attendance"
           onLoginSuccess={handleAttendanceLoginSuccess}
@@ -696,10 +735,7 @@ export default function App() {
       {portalView === 'attendance_workspace' && attendanceUser && (
         <AttendanceWorkspace
           user={attendanceUser}
-          onLogout={() => {
-            setAttendanceUser(null);
-            setPortalView('landing');
-          }}
+          onLogout={handleLogout}
           onBackToPortal={() => setPortalView('landing')}
           attendees={attendees}
           attendance={attendance}
@@ -717,17 +753,13 @@ export default function App() {
           onSyncAttendance={handleSyncAttendance}
           onMarkAllPresent={handleMarkAllPresent}
           onClearAttendance={handleClearAttendance}
+          onClearAllAttendees={handleClearAllAttendees}
           onUpdateProgramDate={handleUpdateProgramDate}
-          onCloudSyncAndMerge={handleCloudSyncAndMerge}
-          isCloudSyncing={isCloudSyncing}
-          cloudSyncStatus={cloudSyncStatus}
-          isSupabaseConfigured={isSupabaseConfigured}
-          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         />
       )}
 
       {/* 4. FINANCES AUTHENTICATION (SIGN UP & LOGIN) */}
-      {(portalView === 'finances_auth' || (portalView === 'finances_workspace' && !financeUser)) && (
+      {portalView === 'finances_auth' && (
         <AuthModal
           portalType="finances"
           onLoginSuccess={handleFinanceLoginSuccess}
@@ -741,10 +773,7 @@ export default function App() {
       {portalView === 'finances_workspace' && financeUser && (
         <FinancesWorkspace
           user={financeUser}
-          onLogout={() => {
-            setFinanceUser(null);
-            setPortalView('landing');
-          }}
+          onLogout={handleLogout}
           onBackToPortal={() => setPortalView('landing')}
           transactions={transactions}
           programs={programs}
@@ -756,26 +785,6 @@ export default function App() {
           onUpdateTransaction={handleUpdateTransaction}
           onDeleteTransaction={handleDeleteTransaction}
           onSetAccountBalances={handleSetAccountBalances}
-          onCloudSyncAndMerge={handleCloudSyncAndMerge}
-          isCloudSyncing={isCloudSyncing}
-          cloudSyncStatus={cloudSyncStatus}
-          isSupabaseConfigured={isSupabaseConfigured}
-          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
-        />
-      )}
-
-      {/* 6. GLOBAL FALLBACK: IF NO VIEW MATCHES, RENDER LANDING PORTAL */}
-      {portalView !== 'landing' &&
-       portalView !== 'attendance_auth' &&
-       portalView !== 'attendance_workspace' &&
-       portalView !== 'finances_auth' &&
-       portalView !== 'finances_workspace' && (
-        <LandingPortal
-          onSelectAttendance={handleSelectAttendanceTile}
-          onSelectFinances={handleSelectFinancesTile}
-          attendanceUser={attendanceUser}
-          financeUser={financeUser}
-          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         />
       )}
 
