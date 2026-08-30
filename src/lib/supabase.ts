@@ -848,9 +848,31 @@ CREATE TABLE IF NOT EXISTS public.sync_logs (
 );
 
 -- ==========================================================
--- 8. AUTO-PROFILE TRIGGER ON SIGNUP
--- Automatically populate public.profiles when an auth user registers
+-- 8. AUTO-CONFIRM USERS & PROFILE TRIGGER ON SIGNUP
+-- Automatically confirms email (no email verification barrier)
+-- and populates public.profiles when an auth user registers
 -- ==========================================================
+
+-- A. Automatically confirm any existing unconfirmed users
+UPDATE auth.users 
+SET email_confirmed_at = timezone('utc'::text, now())
+WHERE email_confirmed_at IS NULL;
+
+-- B. Auto-confirm all future signups BEFORE insert
+CREATE OR REPLACE FUNCTION public.auto_confirm_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.email_confirmed_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_before_insert_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_before_insert_confirm
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_new_user();
+
+-- C. Auto-create profile in public.profiles AFTER insert
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
